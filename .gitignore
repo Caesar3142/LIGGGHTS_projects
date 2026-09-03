@@ -2,6 +2,11 @@
 post/
 **/post/
 **/processor*/
+**/postProcessing/
+
+# OpenFOAM result time directories (keep CFD/0 initial conditions)
+**/CFD/0.*/
+**/CFD/[1-9]*/
 
 # Dump / ParaView exports
 *.dump
