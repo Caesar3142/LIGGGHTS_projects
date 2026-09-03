@@ -1,6 +1,8 @@
 # simple-drop-to-ground
 
-LIGGGHTS case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL ground mesh tilted **~12°**, then slide downhill and settle.
+LIGGGHTS **DEM-only** case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL ground mesh tilted **~12°**, then slide downhill and settle.
+
+Use image **`liggghts:local`** for this case. For CFD–DEM (e.g. `fluidized-bed/`), use **`cfdem:local`** instead — see `../LIGGGHTS_Mac_Docker_notes.md`.
 
 ## Case overview
 
@@ -13,7 +15,7 @@ LIGGGHTS case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL grou
 | Young’s modulus / Poisson | 2.1×10¹¹ Pa / 0.30 (`hard_particles yes` required) |
 | Restitution / friction | 0.7 / 0.15 |
 | Contact model | Hertz + tangential history |
-| Drop height | 0.5 m above the high end of the ramp |
+| Drop height | ~0.5 m above the high end of the ramp |
 | Gravity | 9.81 m/s² straight down |
 | Timestep | 1×10⁻⁶ s (stiff steel contacts) |
 | Run length | 3 000 000 steps (~3 s physical time) |
@@ -28,9 +30,10 @@ simple-drop-to-ground/
 ├── README.md
 ├── simple_dropping_to_ground.liggghts   # input script
 ├── 1x1m-ground.stl                      # ground mesh used by the run (ASCII)
+├── 10x10m-ground.stl                    # optional larger ground (not used by default)
 ├── dumpsToParaView                      # convert dump → ParaView CSV frames
-├── log.liggghts / screen.log            # created when you run (gitignored)
-└── post/                                # dumps & ParaView frames (gitignored)
+├── log.liggghts / screen.log            # created when you run
+└── post/                                # dumps & ParaView frames
 ```
 
 **Note:** LIGGGHTS can fail on some binary STLs (`mesh empty / dimensions too small`). This case uses an ASCII mesh. Prefer ASCII when swapping in a new ground file.
@@ -38,14 +41,14 @@ simple-drop-to-ground/
 ## Prerequisites
 
 1. Docker Desktop running on your Mac  
-2. Project image built once from the repo root:
+2. DEM image built once from the repo root:
 
 ```bash
 cd ~/Documents_Local/GitHub/LIGGGHTS_projects
 docker build --platform linux/amd64 -t liggghts:local .
 ```
 
-See also `../LIGGGHTS_Mac_Docker_notes.md`.
+(`cfdem:local` also provides a `liggghts` binary if you already use that image, but you do **not** need OpenFOAM/CFDEM for this case.)
 
 ## How to run
 
@@ -63,7 +66,8 @@ Your Mac project folder is mounted at `/simulation` inside the container.
 
 ```bash
 cd /simulation/simple-drop-to-ground
-rm -rf post
+mkdir -p post
+rm -rf post/*
 liggghts -in simple_dropping_to_ground.liggghts -log log.liggghts | tee screen.log
 ```
 
@@ -109,3 +113,11 @@ CSV columns: `id,type,x,y,z,vx,vy,vz,vmag,radius`
 | Faster (softer) DEM | Lower `youngs` (e.g. `1e8`) and raise `timestep` |
 | Different ground | Replace `1x1m-ground.stl` (ASCII preferred); keep name or update the `mesh/surface file ...` line |
 | Dump more often | Lower the dump interval (currently `10000`) |
+
+## Related cases
+
+| Case | Image | Notes |
+|------|--------|--------|
+| `simple-drop-to-ground/` | `liggghts:local` | This DEM drop case |
+| `random-diameter-drop-to-ground/` | `liggghts:local` | DEM, polydisperse diameters |
+| `fluidized-bed/` | `cfdem:local` | CFD–DEM (OpenFOAM + LIGGGHTS) |

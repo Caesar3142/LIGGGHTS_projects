@@ -1,0 +1,35 @@
+# CFDEM runtime image for CFD-DEM (OpenFOAM + LIGGGHTS + CFDEMcoupling).
+# Based on the public prebuilt image: https://github.com/edoyango/cfdem-docker
+#
+# Build:
+#   docker build --platform linux/amd64 -f Dockerfile.cfdem -t cfdem:local .
+#
+# Run:
+#   docker run -it --rm --platform linux/amd64 \
+#     -v ~/Documents_Local/GitHub/LIGGGHTS_projects:/simulation \
+#     cfdem:local
+
+FROM edoyango/cfdem:3.8.1
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    OMPI_ALLOW_RUN_AS_ROOT=1 \
+    OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1 \
+    OMPI_MCA_rmaps_base_oversubscribe=1 \
+    OMPI_MCA_btl_vader_single_copy_mechanism=none
+
+# Open MPI refuses root / oversubscription in Docker without these flags
+RUN if [ -x /usr/local/bin/mpirun ] && [ ! -x /usr/local/bin/mpirun.real ]; then \
+      mv /usr/local/bin/mpirun /usr/local/bin/mpirun.real && \
+      printf '%s\n' '#!/bin/bash' \
+        'exec /usr/local/bin/mpirun.real --allow-run-as-root --oversubscribe "$@"' \
+        > /usr/local/bin/mpirun && \
+      chmod +x /usr/local/bin/mpirun; \
+    fi
+
+# Quiet tty noise; ensure liggghts alias exists for DEM-only convenience
+RUN ln -sf /usr/local/LIGGGHTS-PUBLIC/src/lmp_auto /usr/local/bin/liggghts && \
+    ln -sf /usr/local/LIGGGHTS-PUBLIC/src/lmp_auto /usr/local/bin/lmp_auto
+
+WORKDIR /simulation
+
+CMD ["/bin/bash"]

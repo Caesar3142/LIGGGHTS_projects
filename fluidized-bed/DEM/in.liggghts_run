@@ -49,16 +49,13 @@ variable    explicitDragY equal c_explDrag[2]
 variable    explicitDragZ equal c_explDrag[3]
 variable    time equal step*dt
 
-fix         extra all print 100 \
-            "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" \
-            file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
+fix         extra all print 100 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
 
 compute         rke all erotate/sphere
 thermo_style    custom step atoms ke c_rke vol c_centerOfMass[3]
 thermo          100
 thermo_modify   lost ignore norm no
 
-dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run \
-                id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
+dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
 
 run             0

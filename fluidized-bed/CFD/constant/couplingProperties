@@ -95,19 +95,31 @@ constDiffSmoothingProps
 
 implicitCoupleProps
 {
+    velFieldName            "U";
+    granVelFieldName        "Us";
+    voidfractionFieldName   "voidfraction";
 }
 
 ArchimedesProps
 {
+    densityFieldName "rho";
+    gravityFieldName "g";
 }
 gradPForceProps
 {
-    interpolation true;
+    pFieldName          "p";
+    densityFieldName    "rho";
+    voidfractionFieldName "voidfraction";
+    velocityFieldName   "U";
+    interpolation       true;
 }
 
 viscForceProps
 {
-    interpolation true;
+    velocityFieldName   "U";
+    densityFieldName    "rho";
+    voidfractionFieldName "voidfraction";
+    interpolation       true;
 }
 volWeightedAverageProps
 {
@@ -146,10 +158,10 @@ DiFeliceDragProps
 
 KochHillDragProps
 {
-    //verbose true;
-    interpolation true;
-    //implForceDEMaccumulated true;
-    //explicitCorr true;
+    velFieldName            "U";
+    densityFieldName        "rho";
+    voidfractionFieldName   "voidfraction";
+    interpolation           true;
 }
 
 BeetstraDragProps
@@ -238,6 +250,8 @@ engineIBProps
 
 dividedProps
 {
+    // Required by CFDEM in cfdem:local (OpenFOAM-5.x build)
+    alphaMin    0.1;
 }
 
 "(twoWayMPIProps|M2MProps)"

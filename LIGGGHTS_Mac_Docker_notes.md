@@ -150,3 +150,34 @@ print('Success! Columns aligned and animation frames updated.')
 | Never reinstall LIGGGHTS | Use image `liggghts:local` (built once) |
 | Edit scripts | Use Cursor/Finder on Mac; container sees changes instantly |
 | View results | Open `post/` on Mac (ParaView, etc.) |
+
+---
+
+## CFDEM (OpenFOAM + LIGGGHTS) for fluidized-bed
+
+`liggghts:local` is **DEM-only**. For CFD–DEM cases such as `fluidized-bed/`, use **`cfdem:local`**.
+
+### Build once
+
+```bash
+cd ~/Documents_Local/GitHub/LIGGGHTS_projects
+docker pull --platform linux/amd64 edoyango/cfdem:3.8.1
+docker build --platform linux/amd64 -f Dockerfile.cfdem -t cfdem:local .
+```
+
+### Run
+
+```bash
+docker run -it --rm --platform linux/amd64 \
+  -v ~/Documents_Local/GitHub/LIGGGHTS_projects:/simulation \
+  cfdem:local
+```
+
+Inside the container:
+
+```bash
+cd /simulation/fluidized-bed
+./Allrun.sh
+```
+
+Includes OpenFOAM-5.x (`blockMesh`, …), LIGGGHTS (`liggghts` / `lmp_auto`), and CFDEM (`cfdemSolverPiso`).

@@ -4,8 +4,12 @@
 # DEM init for fluidized-bed (packing + settle)
 #===================================================================#
 
-. ~/.bashrc
-source "$CFDEM_SRC_DIR/lagrangian/cfdemParticle/etc/functions.sh"
+set -euo pipefail
+
+if [ -z "${CFDEM_LIGGGHTS_EXEC:-}" ]; then
+    echo "ERROR: CFDEM environment not loaded. Use image cfdem:local (see Dockerfile.cfdem)."
+    exit 1
+fi
 
 echo "starting DEM run in parallel..."
 
@@ -14,7 +18,8 @@ logpath="$casePath"
 headerText="run_liggghts_init_DEM"
 logfileName="log_$headerText"
 solverName="in.liggghts_init"
-nrProcs=4
+# Must match DEM/in.liggghts_run "processors" product for the coupled run (default 2*2*1=4)
+nrProcs="${NR_PROCS:-4}"
 machineFileName="none"
 debugMode="off"
 

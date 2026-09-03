@@ -1,15 +1,37 @@
-# Runtime / generated
+# --- DEM post-processing / runtime ---
 DEM/post/**
 !DEM/post/.gitkeep
 !DEM/post/restart/
 !DEM/post/restart/.gitkeep
 DEM/log.liggghts
 DEM/screen.log
-CFD/[0-9]*/
-CFD/[0-9]*.*/
+
+# DEM dumps & ParaView CSV frames
+DEM/post/dump*
+DEM/post/frame_*.csv
+DEM/post/init_frame_*.csv
+DEM/post/forces.txt
+DEM/post/restart/liggghts.restart*
+DEM/post/*.vtk
+DEM/post/*.vtu
+
+# --- CFD runtime (keep CFD/0 initial fields) ---
 CFD/processor*/
 CFD/constant/polyMesh/
+CFD/0.*/
+CFD/[1-9]*/
+CFD/[1-9].*/
+CFD/postProcessing/
+CFD/couplingFiles/
 CFD/probes/
-log_*
-*.foam
+CFD/VTK/
+CFD/*.foam
 !CFD/system/controlDict.foam
+CFD/log.liggghts
+CFD/log.*
+
+# Case-level CFDEM / MPI logs
+log_*
+log.liggghts
+screen.log
+*.log
