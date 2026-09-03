@@ -1,14 +1,14 @@
 # ===================================================
-# Drop particles onto 10x10m-ground.stl and settle
+# Steel balls (20 mm) drop 0.5 m onto 1x1 m ground
 # ===================================================
 
-# 1. Variable Definitions
-variable        youngs       equal 5e7
-variable        poisson      equal 0.25
+# 1. Variable Definitions - steel
+variable        youngs       equal 2.1e11
+variable        poisson      equal 0.30
 variable        restitution  equal 0.7
-variable        friction     equal 0.0
-variable        density_val  equal 2500
-variable        p_diameter   equal 0.5
+variable        friction     equal 0.15
+variable        density_val  equal 7850
+variable        p_diameter   equal 0.02
 
 # 2. Initialization
 units           si
@@ -17,9 +17,10 @@ atom_modify     sort 0 0.0
 boundary        f f f
 newton          off
 communicate     single vel yes
+hard_particles  yes
 
-# 3. Domain — covers the 10x10 m ground plane at z = 0 plus drop height
-region          reg block -1 11 -1 11 -2 12 units box
+# 3. Domain - 1x1 m ground at z = 0, drop height 0.5 m
+region          reg block -0.05 1.05 -0.05 1.05 -0.05 1.0 units box
 create_box      1 reg
 
 # 4. Material Properties & Contact Model Setup
@@ -28,29 +29,31 @@ fix             m2 all property/global poissonsRatio peratomtype ${poisson}
 fix             m3 all property/global coefficientRestitution atomtypepair 1 ${restitution}
 fix             m4 all property/global coefficientFriction atomtypepair 1 ${friction}
 
-pair_style      gran model hertz tangential no_history
+pair_style      gran model hertz tangential history
 pair_coeff      * *
 
-# 5. Neighbor List settings
-neighbor        0.05 bin
+# 5. Neighbor List settings (skin ~10% of diameter)
+neighbor        0.002 bin
 neigh_modify    delay 0 every 1 check yes
 
 # 6. Gravity straight down & timestep
+# Steel + Hertz is stiff: dt ~ 1e-6 s (~10% Rayleigh for 20 mm steel)
 fix             grav all gravity 9.81 vector 0.0 0.0 -1.0
-timestep        0.00001
+timestep        0.000001
 
-# 7. STL ground mesh wall (file in this case folder)
-fix             ground all mesh/surface file 10x10m-ground.stl type 1
-fix             walls all wall/gran model hertz tangential no_history mesh n_meshes 1 meshes ground
+# 7. STL ground mesh wall (1x1 m plane at z = 0)
+fix             ground all mesh/surface file 1x1m-ground.stl type 1
+fix             walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes ground
 
-# Soft ceiling so particles cannot leave the domain upward
-fix             z_wall_hi all wall/gran model hertz tangential no_history primitive type 1 zplane 11.0
+# Soft ceiling
+fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 0.95
 
-# 8. Particle generation above the ground (top of STL is z = 0)
+# 8. Particle generation - one layer, surface ~0.5 m above ground
+#     center z = 0.5 + radius = 0.51
 fix             m5 all property/global density peratomtype ${density_val}
 
-region          spawner block 2 8 2 8 2 6 units box
-lattice         sc 0.6
+region          spawner block 0.1 0.9 0.1 0.9 0.51 0.53 units box
+lattice         sc 0.025
 create_atoms    1 region spawner
 
 set             region spawner density ${density_val} diameter ${p_diameter}
@@ -60,16 +63,17 @@ fix             integrate_flow all nve/sphere
 
 # 10. Thermo Output Diagnostics
 thermo_style    custom step atoms ke cpu
-thermo          5000
+thermo          10000
 thermo_modify   lost ignore
 
 # 11. Data dumps (relative to this case folder)
-shell           mkdir post
-dump            dmp all custom 5000 post/trajectory.dump id type x y z vx vy vz radius
+# Create post/ on the host before running if it does not exist:
+#   mkdir -p post
+dump            dmp all custom 10000 post/trajectory.dump id type x y z vx vy vz radius
 
 # Optional: export mesh for ParaView overlay (* required by LIGGGHTS mesh/stl)
 dump            mesh1 all mesh/stl 100000000 post/ground_mesh_*.stl ground
 
-# 12. Run until settled (~5 s physical time at dt = 1e-5)
+# 12. Run until settled (~2 s physical time at dt = 1e-6)
 # Watch KE in thermo: when it stays near zero, particles have settled.
-run             500000
+run             2000000

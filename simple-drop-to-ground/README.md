@@ -1,22 +1,25 @@
 # simple-drop-to-ground
 
-LIGGGHTS case: particles fall under gravity onto a **10×10 m STL ground mesh**, bounce, and settle.
+LIGGGHTS case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL ground mesh, bounce, and settle.
 
 ## Case overview
 
 | Item | Value |
 |------|--------|
 | Input script | `simple_dropping_to_ground.liggghts` |
-| Ground mesh | `10x10m-ground.stl` (ASCII, z = 0 plane, 0–10 m in x/y) |
-| Particles | ~700 spheres, diameter 0.5 m, density 2500 kg/m³ |
+| Ground mesh | `1x1m-ground.stl` (ASCII, z = 0, 0–1 m in x/y) |
+| Particles | Steel spheres, diameter **20 mm** (0.02 m) |
+| Density | 7850 kg/m³ |
+| Young’s modulus / Poisson | 2.1×10¹¹ Pa / 0.30 (`hard_particles yes` required) |
+| Restitution / friction | 0.7 / 0.15 |
 | Contact model | Hertz + tangential history |
-| Friction / restitution | 0.0 / 0.7 (`tangential no_history` → free slip) |
+| Drop height | 0.5 m (particle surface above ground) |
 | Gravity | 9.81 m/s² straight down |
-| Timestep | 1×10⁻⁵ s |
-| Run length | 500 000 steps (~5 s physical time) |
+| Timestep | 1×10⁻⁶ s (stiff steel contacts) |
+| Run length | 2 000 000 steps (~2 s physical time) |
 | Outputs | `post/trajectory.dump`, `post/ground_mesh_*.stl`, logs |
 
-Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, particles have settled. Increase `run` in the input if they are still bouncing.
+Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, particles have settled. Increase `run` if they are still bouncing.
 
 ## Files
 
@@ -24,8 +27,8 @@ Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, parti
 simple-drop-to-ground/
 ├── README.md
 ├── simple_dropping_to_ground.liggghts   # input script
-├── 10x10m-ground.stl                    # ground mesh used by the run (ASCII)
-├── 10x10m-ground.binary.stl             # original binary backup (not used by default)
+├── 1x1m-ground.stl                      # ground mesh used by the run (ASCII)
+├── dumpsToParaView                      # convert dump → ParaView CSV frames
 ├── log.liggghts / screen.log            # created when you run (gitignored)
 └── post/                                # dumps & ParaView frames (gitignored)
 ```
@@ -60,6 +63,7 @@ Your Mac project folder is mounted at `/simulation` inside the container.
 
 ```bash
 cd /simulation/simple-drop-to-ground
+rm -rf post
 liggghts -in simple_dropping_to_ground.liggghts -log log.liggghts | tee screen.log
 ```
 
@@ -88,15 +92,17 @@ Frames are written into `post/`.
 
 1. **File → Open** → select the `frame_*.csv` series → Apply  
 2. Filter **Table To Points** — set X/Y/Z to `x` / `y` / `z`  
-3. Optionally open `ground_mesh_0.stl` (or `10x10m-ground.stl`) to show the ground
+3. Optionally open `ground_mesh_0.stl` (or `1x1m-ground.stl`) to show the ground  
+4. Use Glyph → Sphere with scale mode by `radius` if you want true 20 mm balls
 
 ## Useful tweaks
 
 | Goal | Edit in `simple_dropping_to_ground.liggghts` |
 |------|-----------------------------------------------|
-| Longer settle time | Increase `run` (e.g. `750000`) |
+| Longer settle time | Increase `run` (e.g. `3000000`) |
 | More / fewer particles | Change `spawner` region or `lattice` spacing |
 | Softer bounce | Lower `restitution` |
-| More / less slipping | Raise / lower `friction`; `tangential no_history` = free slip |
-| Different ground | Replace `10x10m-ground.stl` (ASCII preferred); keep name or update the `mesh/surface file ...` line |
-| Dump more often | Lower the dump interval (currently `5000`) |
+| More / less slipping | Lower / raise `friction` |
+| Faster (softer) DEM | Lower `youngs` (e.g. `1e8`) and raise `timestep` |
+| Different ground | Replace `1x1m-ground.stl` (ASCII preferred); keep name or update the `mesh/surface file ...` line |
+| Dump more often | Lower the dump interval (currently `10000`) |
