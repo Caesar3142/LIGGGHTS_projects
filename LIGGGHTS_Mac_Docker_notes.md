@@ -1,59 +1,101 @@
 # LIGGGHTS Simulation Quick-Start Guide
 
-A copy-pasteable cheat sheet to run your LIGGGHTS simulation anytime you open a fresh terminal window on your Mac.
+A copy-pasteable cheat sheet to run your LIGGGHTS simulation on your Mac via Docker — **without reinstalling LIGGGHTS every time**.
 
 ---
 
-### 📋 Prerequisites (One-Time Setup)
-Ensure **Docker Desktop** is open and running in the background of your Mac.
+### How this works
+
+1. **LIGGGHTS stays installed** — you build a custom Docker *image* once. Closing the container does not wipe that install.
+2. **Your files live on the Mac** — the `-v` flag mounts a host folder into the container. Edit on Mac, run inside Docker; results appear on Mac immediately. No `docker cp` needed for anything under the mount.
 
 ---
 
-### Step 1: Open a Fresh Mac Terminal
-Navigate directly to your simulation folder on your Mac:
+### Prerequisites (One-Time)
+Ensure **Docker Desktop** is open and running.
+
+---
+
+### Step 1: Build the image (ONE TIME ONLY)
+
+From your project folder on the Mac:
+
 ```bash
-cd ~/liggghts_test
+cd ~/Documents_Local/GitHub/LIGGGHTS_projects
+docker build --platform linux/amd64 -t liggghts:local .
 ```
 
-### Step 2: Start the Docker Container
-Launch the container while mounting your current folder (`pwd`) into the Linux environment:
+This installs LIGGGHTS into the image. Takes a few minutes the first time. You only need to rebuild if you change the `Dockerfile`.
+
+---
+
+### Step 2: Start a container (every session)
+
+Mount any Mac folder you want to work in. Examples:
+
 ```bash
-docker run -it --platform linux/amd64 -v "$(pwd)":/simulation ubuntu:20.04
+# Your git project folder
+docker run -it --rm --platform linux/amd64 \
+  -v ~/Documents_Local/GitHub/LIGGGHTS_projects:/simulation \
+  liggghts:local
 
-(example: docker run -it --platform linux/amd64 -v ~/liggghts_test:/simulation ubuntu:20.04)
+# Or any other folder on your Mac
+docker run -it --rm --platform linux/amd64 \
+  -v ~/LIGGGHTS_projects:/simulation \
+  liggghts:local
 ```
-*(Your terminal prompt will change, indicating you are now successfully inside the Linux container).*
 
-### Step 3: Install LIGGGHTS (Inside the Container)
-Since Docker containers reset their temporary system memory when closed, run this quick installation script:
-```bash
-apt-get update && apt-get install -y liggghts
-```
+- `--rm` removes the *container* when you exit (keeps things tidy). The *image* still has LIGGGHTS.
+- `-v host_path:/simulation` = Mac folder ↔ `/simulation` inside Docker (same files).
+- You can mount other paths too, e.g. `-v ~/Desktop/my_run:/simulation`.
 
-### Step 4: Run the Simulation
-Move into the shared folder where your `in.chute` script lives, and execute the run command:
+*(Your terminal prompt changes — you are inside Linux.)*
+
+---
+
+### Step 3: Run the simulation
+
+No install step. Just:
+
 ```bash
 cd /simulation
 liggghts -in in.chute
 ```
 
-### Step 5: Exit the Container
-Once the log files stop scrolling and the simulation hits 100,000 steps, safely close the container by typing:
+Output files (e.g. under `post/`) appear on your Mac in the mounted folder right away.
+
+---
+
+### Step 4: Exit
+
 ```bash
 exit
 ```
-*(You will be returned back to your regular Mac terminal prompt, and your new `.vtk` files will be sitting safely in `~/liggghts_test/post/`).*
 
+Back to your Mac prompt. Next time: only Step 2 — no rebuild, no `apt-get install`.
 
-## Copy the results out from docker container:
-docker cp 7229e7ee30b1:/simulation/post /Users/caesarwiratama/Documents_Local/projects/LIGGGHTS-run/
+---
 
-## convert post files
-cd /Users/caesarwiratama/Documents_Local/projects/LIGGGHTS-run/post
-for f in *.dump; do mv "$f" "${f%.dump}.csv"; done
+## Optional: reuse one named container instead of `--rm`
 
-## Convert to make it paraview-readable
-cd /Users/caesarwiratama/Documents_Local/projects/LIGGGHTS-run/post
+If you prefer keeping a long-lived container (packages + history):
+
+```bash
+# Create once
+docker run -it --name liggghts_work --platform linux/amd64 \
+  -v ~/Documents_Local/GitHub/LIGGGHTS_projects:/simulation \
+  liggghts:local
+
+# Later sessions (after exit)
+docker start -ai liggghts_work
+```
+
+---
+
+## Convert dump files for ParaView (on Mac, outside Docker)
+
+```bash
+cd /path/to/your/post
 
 python3 -c "
 import os
@@ -63,7 +105,7 @@ with open('trajectory.dump', 'r') as f:
 
 current_time = 0
 frame_data = []
-columns_header = 'id,type,x,y,z,vx,vy,vz,radius\n' # Standard order
+columns_header = 'id,type,x,y,z,vx,vy,vz,radius\n'
 
 i = 0
 while i < len(lines):
@@ -76,27 +118,35 @@ while i < len(lines):
         current_time = int(lines[i+1].strip())
         i += 2
         continue
-    
-    # Safely skip the variable metadata header lines
+
     if 'ITEM:' in line:
         i += 1
         continue
-        
+
     parts = line.split()
-    # Ensure it only captures the rows containing the 9 numerical atom parameters
     if len(parts) == 9:
         try:
-            # Test if the line starts with a valid integer ID
             int(parts[0])
             frame_data.append(','.join(parts) + '\n')
         except ValueError:
             pass
     i += 1
 
-# Write out the final lingering frame boundary
 if frame_data:
     with open(f'frame_{current_time}.csv', 'w') as out:
         out.write(columns_header + ''.join(frame_data))
 
 print('Success! Columns aligned and animation frames updated.')
 "
+```
+
+---
+
+## Tips
+
+| Goal | Do this |
+|------|---------|
+| Work on Mac files | Always use `-v /path/on/mac:/simulation` |
+| Never reinstall LIGGGHTS | Use image `liggghts:local` (built once) |
+| Edit scripts | Use Cursor/Finder on Mac; container sees changes instantly |
+| View results | Open `post/` on Mac (ParaView, etc.) |
