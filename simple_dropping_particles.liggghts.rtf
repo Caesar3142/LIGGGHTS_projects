@@ -1,0 +1,77 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # ===================================================\
+# Super simple dropping 1000 particles\
+# ===================================================\
+\
+# 1. Variable Definitions\
+variable        youngs       equal 5e7\
+variable        poisson      equal 0.25\
+variable        restitution  equal 0.5\
+variable        friction     equal 0.4\
+variable        density_val  equal 2500\
+variable        p_diameter   equal 0.5\
+\
+# 2. Initialization\
+units           si\
+atom_style      granular\
+atom_modify     sort 0 0.0\
+boundary        p p f          # Periodic X/Y, Fixed Z bounds\
+newton          off\
+communicate     single vel yes\
+\
+# 3. Domain and Simulation Box\
+region          reg block 0 20 0 10 -2 15 units box\
+create_box      1 reg          \
+\
+# 4. Material Properties & Contact Model Setup\
+fix             m1 all property/global youngsModulus peratomtype $\{youngs\}\
+fix             m2 all property/global poissonsRatio peratomtype $\{poisson\}\
+fix             m3 all property/global coefficientRestitution atomtypepair 1 $\{restitution\}\
+fix             m4 all property/global coefficientFriction atomtypepair 1 $\{friction\}\
+\
+pair_style      gran model hertz tangential history\
+pair_coeff      * *\
+\
+# 5. Neighbor List settings\
+neighbor        0.002 bin\
+neigh_modify    delay 0 every 1 check yes\
+\
+# 6. Gravity Vector & Timestep\
+fix             grav all gravity 9.81 vector 0.342 0.0 -0.940\
+timestep        0.00001        \
+\
+# 7. Primitive Box Constraint Walls\
+fix             z_wall_low all wall/gran model hertz tangential history primitive type 1 zplane -1.0\
+fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 12.0\
+\
+# 8. Direct Particle Generation\
+fix             m5 all property/global density peratomtype $\{density_val\}\
+\
+region          spawner block 2 8 2 8 2 8 units box\
+lattice         sc 0.6  \
+create_atoms    1 region spawner\
+\
+set             region spawner density $\{density_val\} diameter $\{p_diameter\}\
+\
+# 9. Integration Style\
+fix             integrate_flow all nve/sphere\
+\
+# 10. Thermo Output Diagnostics\
+thermo_style    custom step atoms ke cpu\
+thermo          1000\
+thermo_modify   lost ignore    \
+\
+# 11. Data Dumps (FIXED: REMOVED * TO MAKE IT A SINGLE MASTER FILE)\
+shell           mkdir post\
+dump            dmp all custom 2000 post/trajectory.dump id type x y z vx vy vz radius\
+\
+# 12. Run execution\
+run             50000\
+EOF\
+}
