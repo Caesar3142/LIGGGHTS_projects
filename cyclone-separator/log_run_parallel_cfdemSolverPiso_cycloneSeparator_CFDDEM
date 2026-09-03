@@ -1457,3 +1457,74 @@ DICPCG:  Solving for p, Initial residual = 0.00209986, Final residual = 0.000191
 DICPCG:  Solving for p, Initial residual = 0.000407095, Final residual = 3.75927e-05, No Iterations 46
 time step continuity errors : sum local = 2.4769e-09, global = 4.36953e-10, cumulative = -8.88879e-07
 DICPCG:  Solving for p, Initial residual = 0.000309437, Final residual = 2.98452e-05, No Iterations 5
+DICPCG:  Solving for p, Initial residual = 4.51366e-05, Final residual = 4.02665e-06, No Iterations 223
+time step continuity errors : sum local = 2.6533e-10, global = -8.69405e-13, cumulative = -8.8888e-07
+DICPCG:  Solving for p, Initial residual = 8.14113e-05, Final residual = 7.58087e-06, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 9.62212e-06, Final residual = 9.70156e-07, No Iterations 36
+time step continuity errors : sum local = 6.37474e-11, global = -1.26043e-11, cumulative = -8.88893e-07
+DILUPBiCG:  Solving for epsilon, Initial residual = 0.00361718, Final residual = 0.00013747, No Iterations 1
+bounding epsilon, min: -192.386 max: 42899.1 average: 102.339
+DILUPBiCG:  Solving for k, Initial residual = 0.0340167, Final residual = 0.000173553, No Iterations 1
+bounding k, min: -0.55847 max: 37.0906 average: 0.791937
+ExecutionTime = 152.81 s  ClockTime = 154 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0283626
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.0283626
+
+Time = 0.0015
+
+Courant Number mean: 0.00882956 max: 0.956791
+
+ timeStepFraction() = 0.5
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (0.000161285 -1.91344e-06 1.30527e-06)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCG:  Solving for Ux, Initial residual = 0.00126413, Final residual = 1.17879e-05, No Iterations 1
+DILUPBiCG:  Solving for Uy, Initial residual = 0.00269054, Final residual = 3.78438e-05, No Iterations 1
+DILUPBiCG:  Solving for Uz, Initial residual = 0.000807486, Final residual = 7.23966e-06, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0171945, Final residual = 0.0015535, No Iterations 4
+DICPCG:  Solving for p, Initial residual = 0.00263037, Final residual = 0.000252518, No Iterations 13
+time step continuity errors : sum local = 1.65892e-08, global = 1.37462e-10, cumulative = -8.88755e-07
+DICPCG:  Solving for p, Initial residual = 0.0021065, Final residual = 0.000196367, No Iterations 10
+DICPCG:  Solving for p, Initial residual = 0.000409794, Final residual = 4.02888e-05, No Iterations 61
+time step continuity errors : sum local = 2.64603e-09, global = 3.87455e-10, cumulative = -8.88368e-07
+DICPCG:  Solving for p, Initial residual = 0.000354758, Final residual = 3.19214e-05, No Iterations 6
+DICPCG:  Solving for p, Initial residual = 4.90525e-05, Final residual = 4.77063e-06, No Iterations 229
+time step continuity errors : sum local = 3.13361e-10, global = -7.32202e-12, cumulative = -8.88375e-07
+DICPCG:  Solving for p, Initial residual = 8.20412e-05, Final residual = 7.19983e-06, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 9.13295e-06, Final residual = 9.98129e-07, No Iterations 45
+time step continuity errors : sum local = 6.53889e-11, global = -9.14563e-12, cumulative = -8.88384e-07
+DILUPBiCG:  Solving for epsilon, Initial residual = 0.00351185, Final residual = 0.000128791, No Iterations 1
+bounding epsilon, min: -317.179 max: 38840 average: 101.631
+DILUPBiCG:  Solving for k, Initial residual = 0.0330914, Final residual = 0.000151299, No Iterations 1
+bounding k, min: -0.594077 max: 36.7306 average: 0.78901
+ExecutionTime = 155.18 s  ClockTime = 156 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0283626
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.0283626
+
+Time = 0.00155
+
+Courant Number mean: 0.00883414 max: 0.946867
+
+ timeStepFraction() = 0.55
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (0.000160098 -1.68923e-06 1.13455e-06)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCG:  Solving for Ux, Initial residual = 0.00126418, Final residual = 1.07927e-05, No Iterations 1
+DILUPBiCG:  Solving for Uy, Initial residual = 0.00268517, Final residual = 2.80351e-05, No Iterations 1
+DILUPBiCG:  Solving for Uz, Initial residual = 0.000804614, Final residual = 4.10922e-06, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0170562, Final residual = 0.00156508, No Iterations 5
+DICPCG:  Solving for p, Initial residual = 0.00271087, Final residual = 0.000238055, No Iterations 12
+time step continuity errors : sum local = 1.5579e-08, global = 1.38904e-10, cumulative = -8.88245e-07
+DICPCG:  Solving for p, Initial residual = 0.00204355, Final residual = 0.000185292, No Iterations 10
