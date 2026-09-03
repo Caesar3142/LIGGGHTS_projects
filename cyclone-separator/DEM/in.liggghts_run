@@ -35,7 +35,7 @@ fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclus
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
 # Quartz-like dust/fine-sand distribution: d = 0.15, 0.30 and 0.60 mm.
-# Fractions are mass fractions. Feed is capped at 1000 particles over 0.5 s.
+# Fractions are mass fractions. Feed is capped at 250 particles (~1/4 of prior case).
 fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000075
 fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000150
 fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.000300
@@ -45,7 +45,7 @@ fix         feedDist all particledistribution/discrete 32452867 3 dust 0.10 fine
 # matches the fully developed CFD inlet speed: 15 m/s in the -x direction.
 # 5000 DEM steps = 0.005 s between insertion batches.
 region      feed block 0.138 0.145 -0.090 -0.050 -0.020 0.020 units box
-fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 1000 particlerate 2000 insert_every 5000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 5000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
 
 # CFD coupling (OpenFOAM / CFDEM)
 fix         cfd all couple/cfd couple_every 1000 mpi

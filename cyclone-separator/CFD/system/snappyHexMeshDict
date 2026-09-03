@@ -31,10 +31,10 @@ geometry
 
 castellatedMeshControls
 {
-    maxLocalCells       600000;
-    maxGlobalCells      1800000;
+    maxLocalCells       200000;
+    maxGlobalCells      500000;
     minRefinementCells  0;
-    nCellsBetweenLevels 3;
+    nCellsBetweenLevels 2;
     resolveFeatureAngle 30;
 
     features ();
@@ -43,7 +43,7 @@ castellatedMeshControls
     {
         body
         {
-            level (2 2);
+            level (1 1);
             patchInfo
             {
                 type wall;
@@ -51,7 +51,7 @@ castellatedMeshControls
         }
         inlet
         {
-            level (2 2);
+            level (1 1);
             patchInfo
             {
                 type patch;
@@ -59,7 +59,7 @@ castellatedMeshControls
         }
         outlet
         {
-            level (2 2);
+            level (1 1);
             patchInfo
             {
                 type patch;

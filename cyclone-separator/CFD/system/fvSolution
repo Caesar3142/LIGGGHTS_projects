@@ -33,10 +33,11 @@ solvers
 
     "(U|k|epsilon|omega|R|nuTilda)"
     {
-        solver          PBiCG;
+        solver          PBiCGStab;
         preconditioner  DILU;
         tolerance       1e-05;
         relTol          0.1;
+        maxIter         1000;
     }
 
     "(U|k|epsilon|omega|R|nuTilda)Final"
@@ -56,16 +57,16 @@ solvers
 
 PISO
 {
-    nCorrectors     4;
-    nNonOrthogonalCorrectors 1;
+    nCorrectors     3;
+    nNonOrthogonalCorrectors 2;
     pRefCell        0;
     pRefValue       0;
 }
 PIMPLE
 {
     nOuterCorrectors 1;
-    nCorrectors     4;
-    nNonOrthogonalCorrectors 0;
+    nCorrectors     3;
+    nNonOrthogonalCorrectors 2;
     pRefCell        0;
     pRefValue       0;
 }
@@ -73,13 +74,13 @@ relaxationFactors
 {
     fields
     {
-	    p	1.0;
+        p               0.3;
     }
     equations
     {
-        "U.*"           1.;
-        "k.*"           1.;
-        "epsilon.*"     1.;
+        "U.*"           0.7;
+        "k.*"           0.7;
+        "epsilon.*"     0.7;
     }
 }
 

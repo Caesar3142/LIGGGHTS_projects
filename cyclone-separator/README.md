@@ -18,7 +18,7 @@ injected periodically at the air-inlet velocity.
 | Particles | Quartz/sand, ρ = 2650 kg/m³ |
 | Diameters | 0.15, 0.30, 0.60 mm |
 | Diameter mass fractions | 0.10, 0.35, 0.55 |
-| Feed | 2000 particles/s, one batch every 0.005 s, maximum 1000 |
+| Feed | 500 particles/s, one batch every 0.005 s, maximum 250 |
 | DEM injection velocity | (-15, 0, 0) m/s |
 | CFD time step | 5e-5 s |
 | DEM time step | 1e-6 s |
@@ -35,9 +35,10 @@ the measured dust loading before using collection-efficiency results.
 
 The CFD mesh is generated in two steps:
 
-1. `blockMesh` creates an 8 mm background mesh.
+1. `blockMesh` creates a ~13 mm background mesh.
 2. `snappyHexMesh -overwrite` retains the internal cyclone-fluid region and
-   refines `body`, `inlet`, and `outlet` surfaces to about 2 mm.
+   refines `body`, `inlet`, and `outlet` surfaces to about 6–7 mm
+   (~1/4 of the previous cell count).
 
 `inlet.stl` and `outlet.stl` are CFD boundary caps. LIGGGHTS uses only
 `DEM/body.stl` as a particle wall, allowing particles to enter and leave

@@ -32,9 +32,9 @@ vertices
 
 blocks
 (
-    // Base cell size is approximately 8 mm; surface refinement produces
-    // approximately 2 mm cells at the cyclone, inlet and outlet.
-    hex (0 1 2 3 4 5 6 7) (45 45 63) simpleGrading (1 1 1)
+    // Base cell size is approximately 13 mm; surface refinement produces
+    // approximately 6–7 mm cells at the cyclone, inlet and outlet (~1/4 cells).
+    hex (0 1 2 3 4 5 6 7) (28 28 40) simpleGrading (1 1 1)
 );
 
 edges
