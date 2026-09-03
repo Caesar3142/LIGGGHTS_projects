@@ -12,10 +12,11 @@ Adapted from [CFDEMcoupling-PUBLIC `ErgunTestMPI`](https://github.com/CFDEMproje
 |------|--------|
 | Solver | `cfdemSolverPiso` (4-way CFD–DEM) |
 | Column | Cylinder, D ≈ **27.6 mm**, H = **150 mm** |
-| Particles | ~**16000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
+| Particles | ~**32000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
 | Contact | Hertz + tangential history (soft demo solids, E = 5×10⁶ Pa) |
 | Fluid (demo) | ρ = 10 kg/m³, ν = 1.5×10⁻⁴ m²/s (not real air) |
 | Inlet U | Ramps **0.02 → 0.15 m/s** (z+) over 0.2 s |
+| Mesh | 2× `blockMesh` resolution (centre **16×16×120**, ~8× cells) |
 | CFD Δt / write | 5×10⁻⁴ s / every **0.01 s** |
 | DEM Δt / dump | 1×10⁻⁵ s / every **1000** steps (= **0.01 s**) |
 | Coupling | `couple_every 100` (DEM); `couplingInterval 50` (CFD) |
@@ -30,6 +31,7 @@ Demo fluid properties keep the case small and stable. For air, edit `CFD/0/rho`,
 fluidized-bed/
 ├── README.md
 ├── Allrun.sh                 # mesh → DEM pack → coupled run
+├── Allclean.sh               # wipe CFD + DEM runtime (mesh, restart, dumps)
 ├── parDEMrun.sh
 ├── parCFDDEMrun.sh
 ├── CFD/
@@ -80,30 +82,24 @@ This will:
 3. Run coupled CFD–DEM (`./parCFDDEMrun.sh`)  
 4. Abort if the DEM restart is missing  
 
-Typical wall time on Mac (amd64 emulation): expect a long run (2 s, 16000 particles, 0.01 s I/O).
+Typical wall time on Mac (amd64 emulation): expect a long run (2 s, 32000 particles, 2× mesh, 0.01 s I/O).
 
 ### Step by step
 
 ```bash
 cd /simulation/fluidized-bed
 cd CFD && blockMesh && cd ..
-./parDEMrun.sh          # packing (~100k DEM steps) — delete old restart first if re-packing
+./parDEMrun.sh          # packing (~120k DEM steps) — delete old restart first if re-packing
 ./parCFDDEMrun.sh       # 2 s fluidization
 ```
 
 ### Clean re-run
 
-Must delete the old DEM restart so packing uses 16000 particles:
-
 ```bash
 cd /simulation/fluidized-bed
-rm -f DEM/post/restart/liggghts.restart
-rm -rf DEM/post/dump*.liggghts_run DEM/post/particles_* DEM/post/particles.pvd
-rm -rf CFD/processor* CFD/[1-9]* CFD/0.* CFD/postProcessing CFD/couplingFiles
-./Allrun.sh
+./Allclean.sh   # CFD mesh/results + DEM dumps/restart/logs
+./Allrun.sh     # remesh + re-pack + couple
 ```
-
-Remesh only if geometry changed: `rm -rf CFD/constant/polyMesh`.
 
 ## Post-processing in ParaView
 
