@@ -1,0 +1,100 @@
+# ===================================================
+# Steel balls with random diameter (5-30 mm)
+# Drop ~0.5 m onto tilted 1x1 m ground
+# ===================================================
+# Note: this LIGGGHTS build has no continuous diameter RNG,
+# so sizes are discrete bins from 5-30 mm (~equal particle count).
+
+# 1. Variable Definitions - steel
+variable        youngs       equal 2.1e11
+variable        poisson      equal 0.30
+variable        restitution  equal 0.4
+variable        friction     equal 0.3
+variable        density_val  equal 7850
+
+# 2. Initialization
+units           si
+atom_style      granular
+atom_modify     sort 0 0.0
+boundary        f f f
+newton          off
+communicate     single vel yes
+hard_particles  yes
+
+# 3. Domain - ground is still 1x1 m; box extends +1 m outside so particles
+#    that leave the plate stay in the sim and remain visible in dumps
+region          reg block -1.05 2.05 -1.05 2.05 -1.25 2.2 units box
+create_box      1 reg
+
+# 4. Material Properties & Contact Model Setup
+fix             m1 all property/global youngsModulus peratomtype ${youngs}
+fix             m2 all property/global poissonsRatio peratomtype ${poisson}
+fix             m3 all property/global coefficientRestitution atomtypepair 1 ${restitution}
+fix             m4 all property/global coefficientFriction atomtypepair 1 ${friction}
+fix             m5 all property/global density peratomtype ${density_val}
+
+pair_style      gran model hertz tangential history
+pair_coeff      * *
+
+# 5. Neighbor List settings (skin sized for largest 30 mm particles)
+neighbor        0.005 bin
+neigh_modify    delay 0 every 1 check yes
+
+# 6. Gravity straight down & timestep
+# Smallest particles (5 mm) control stability: dt = 5e-7 s
+fix             grav all gravity 9.81 vector 0.0 0.0 -1.0
+timestep        0.0000005
+
+# 7. STL ground mesh wall (1x1 m, tilted ~12 deg)
+fix             ground all mesh/surface file 1x1m-ground.stl type 1
+fix             walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes ground
+# Soft outer walls 1 m outside the old region (particles can leave the 1x1 plate)
+fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 2.15
+fix             z_wall_lo all wall/gran model hertz tangential history primitive type 1 zplane -1.24
+fix             x_wall_lo all wall/gran model hertz tangential history primitive type 1 xplane -1.04
+fix             x_wall_hi all wall/gran model hertz tangential history primitive type 1 xplane 2.04
+fix             y_wall_lo all wall/gran model hertz tangential history primitive type 1 yplane -1.04
+fix             y_wall_hi all wall/gran model hertz tangential history primitive type 1 yplane 2.04
+
+# 8. Polydisperse templates: diameters 5,7.5,...,30 mm (radii = d/2)
+#    Seeds must be prime and > 10000 (LIGGGHTS RNG requirement)
+#    Mass fractions proportional to d^3 so each size class has ~equal count
+fix             pts1  all particletemplate/sphere 15485863 atom_type 1 density constant ${density_val} radius constant 0.00250
+fix             pts2  all particletemplate/sphere 15485867 atom_type 1 density constant ${density_val} radius constant 0.00375
+fix             pts3  all particletemplate/sphere 32452843 atom_type 1 density constant ${density_val} radius constant 0.00500
+fix             pts4  all particletemplate/sphere 32452867 atom_type 1 density constant ${density_val} radius constant 0.00625
+fix             pts5  all particletemplate/sphere 49979687 atom_type 1 density constant ${density_val} radius constant 0.00750
+fix             pts6  all particletemplate/sphere 49979693 atom_type 1 density constant ${density_val} radius constant 0.00875
+fix             pts7  all particletemplate/sphere 67867967 atom_type 1 density constant ${density_val} radius constant 0.01000
+fix             pts8  all particletemplate/sphere 67867979 atom_type 1 density constant ${density_val} radius constant 0.01125
+fix             pts9  all particletemplate/sphere 86028121 atom_type 1 density constant ${density_val} radius constant 0.01250
+fix             pts10 all particletemplate/sphere 86028157 atom_type 1 density constant ${density_val} radius constant 0.01375
+fix             pts11 all particletemplate/sphere 104395303 atom_type 1 density constant ${density_val} radius constant 0.01500
+
+fix             pdd1 all particledistribution/discrete 122949823 11 &
+                pts1 0.00132 pts2 0.00444 pts3 0.01052 pts4 0.02055 &
+                pts5 0.03551 pts6 0.05639 pts7 0.08417 pts8 0.11984 &
+                pts9 0.16439 pts10 0.21881 pts11 0.28406
+
+# Spawn above high end of ramp; overlapcheck avoids insert overlaps
+region          spawner block 0.10 0.45 0.15 0.85 0.55 0.85 units box
+fix             ins all insert/pack seed 122949829 distributiontemplate pdd1 &
+                insert_every once overlapcheck yes all_in yes &
+                vel constant 0. 0. 0. &
+                region spawner particles_in_region 250
+
+# 9. Integration Style
+fix             integrate_flow all nve/sphere
+
+# 10. Thermo Output Diagnostics
+thermo_style    custom step atoms ke cpu
+thermo          20000
+thermo_modify   lost ignore
+
+# 11. Data dumps
+# mkdir -p post   (before run)
+dump            dmp all custom 20000 post/trajectory.dump id type x y z vx vy vz radius
+dump            mesh1 all mesh/stl 100000000 post/ground_mesh_*.stl ground
+
+# 12. Run until slide/settle (~3 s at dt = 5e-7)
+run             6000000
