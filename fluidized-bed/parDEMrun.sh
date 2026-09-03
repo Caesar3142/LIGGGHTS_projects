@@ -18,8 +18,8 @@ logpath="$casePath"
 headerText="run_liggghts_init_DEM"
 logfileName="log_$headerText"
 solverName="in.liggghts_init"
-# Must match DEM/in.liggghts_run "processors" product for the coupled run (default 2*2*1=4)
-nrProcs="${NR_PROCS:-4}"
+# Must match DEM/in.liggghts_run "processors" product (default 2*2*2=8)
+nrProcs="${NR_PROCS:-8}"
 machineFileName="none"
 debugMode="off"
 

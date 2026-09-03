@@ -12,15 +12,15 @@ Adapted from [CFDEMcoupling-PUBLIC `ErgunTestMPI`](https://github.com/CFDEMproje
 |------|--------|
 | Solver | `cfdemSolverPiso` (4-way CFD–DEM) |
 | Column | Cylinder, D ≈ **27.6 mm**, H = **150 mm** |
-| Particles | ~**8000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
+| Particles | ~**16000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
 | Contact | Hertz + tangential history (soft demo solids, E = 5×10⁶ Pa) |
 | Fluid (demo) | ρ = 10 kg/m³, ν = 1.5×10⁻⁴ m²/s (not real air) |
 | Inlet U | Ramps **0.02 → 0.15 m/s** (z+) over 0.2 s |
 | CFD Δt / write | 5×10⁻⁴ s / every **0.01 s** |
 | DEM Δt / dump | 1×10⁻⁵ s / every **1000** steps (= **0.01 s**) |
 | Coupling | `couple_every 100` (DEM); `couplingInterval 50` (CFD) |
-| End time | **5.0 s** |
-| MPI | **4** ranks (`processors 2 2 1`; `decomposeParDict` = 4) |
+| End time | **2.0 s** |
+| MPI | **8** ranks (`processors 2 2 2`; `decomposeParDict` = 8) |
 
 Demo fluid properties keep the case small and stable. For air, edit `CFD/0/rho`, `CFD/constant/transportProperties`, and re-estimate inlet `U`.
 
@@ -80,20 +80,20 @@ This will:
 3. Run coupled CFD–DEM (`./parCFDDEMrun.sh`)  
 4. Abort if the DEM restart is missing  
 
-Typical wall time on Mac (amd64 emulation): substantially longer than the old 1 s / 4000-particle case (5 s, 8000 particles, 0.01 s I/O).
+Typical wall time on Mac (amd64 emulation): expect a long run (2 s, 16000 particles, 0.01 s I/O).
 
 ### Step by step
 
 ```bash
 cd /simulation/fluidized-bed
 cd CFD && blockMesh && cd ..
-./parDEMrun.sh          # packing (~80k DEM steps) — delete old restart first if re-packing
-./parCFDDEMrun.sh       # 5 s fluidization
+./parDEMrun.sh          # packing (~100k DEM steps) — delete old restart first if re-packing
+./parCFDDEMrun.sh       # 2 s fluidization
 ```
 
 ### Clean re-run
 
-Must delete the old DEM restart so packing uses 8000 particles:
+Must delete the old DEM restart so packing uses 16000 particles:
 
 ```bash
 cd /simulation/fluidized-bed
