@@ -1,0 +1,15 @@
+# Runtime / generated
+DEM/post/**
+!DEM/post/.gitkeep
+!DEM/post/restart/
+!DEM/post/restart/.gitkeep
+DEM/log.liggghts
+DEM/screen.log
+CFD/[0-9]*/
+CFD/[0-9]*.*/
+CFD/processor*/
+CFD/constant/polyMesh/
+CFD/probes/
+log_*
+*.foam
+!CFD/system/controlDict.foam

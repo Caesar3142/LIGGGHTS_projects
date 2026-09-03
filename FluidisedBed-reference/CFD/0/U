@@ -1,0 +1,53 @@
+// U
+// engineerdo.com
+
+// This file in 0 where the velocity boundary conditions are set
+
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class volVectorField;
+    location "0";
+    object U;
+}
+dimensions [ 0 1 -1 0 0 0 0 ];
+internalField uniform (0.0 0.0 0.0);
+boundaryField
+{
+   
+
+   /* inlet
+    {
+         type fixedValue;
+        value uniform ( 0 0 1);
+    }*/
+
+ 	inlet
+    {
+       type uniformFixedValue;
+	uniformValue table
+	(
+	(0 (0 0 0))
+	(2 (0 0 0.8))
+	(5.0 (0 0 0.8))
+	(6.0 (0 0 1))
+	(100.0 (0 0 1))
+	);
+
+    }
+
+
+    outlet
+    {
+        type pressureInletOutletVelocity;
+        value uniform ( 0 0 0);
+    }
+
+    cylinder
+    {
+        type fixedValue;
+        value uniform ( 0 0 0);
+    }
+
+}

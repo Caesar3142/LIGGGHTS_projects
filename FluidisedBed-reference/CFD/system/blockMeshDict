@@ -1,0 +1,54 @@
+// BlockMeshDict
+// engineerdo.com
+
+// This file is needed to generate a BaseMesh
+
+
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    location system;
+    object blockMeshDict;
+}
+
+    convertToMeters 1;
+    vertices  
+    (
+      ( -0.08 	-0.08 	-0.005) //these are the vertices
+      (  0.08 	-0.08 	-0.005)
+      (  0.08	 0.08 	-0.005)
+      ( -0.08	 0.08 	-0.005)
+      ( -0.08 	-0.08 	 0.5)
+      (  0.08 	-0.08	 0.5)
+      (  0.08	 0.08	 0.5)
+      ( -0.08	 0.08	 0.5)
+    );
+    blocks  
+    ( hex
+      ( 0 1 2 3 4 5 6 7) //make a block out of all vertices
+      ( 37 39 115) simpleGrading
+      ( 1 1 1)
+    );
+    edges  
+    (
+    );
+    patches  // defining the patches, which vertex belongs to which patch
+    ( wall ffminx
+      (( 0 4 7 3)) 
+	wall ffmaxx
+      (( 1 2 6 5)) 
+	wall ffminy
+      (( 0 1 5 4)) 
+	wall ffmaxy
+      (( 3 7 6 2)) 
+	wall ffminz
+      (( 0 3 2 1)) 
+	wall ffmaxz
+      (( 4 5 6 7))
+    );
+    mergePatchPairs  
+    (
+    );
+    spacing 0.005;
