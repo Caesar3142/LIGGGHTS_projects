@@ -56,6 +56,7 @@ thermo_style    custom step atoms ke c_rke vol c_centerOfMass[3]
 thermo          100
 thermo_modify   lost ignore norm no
 
-dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
+# Dump every 1000 DEM steps = 0.01 s (dt = 1e-5)
+dump            dmp all custom 1000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
 
 run             0

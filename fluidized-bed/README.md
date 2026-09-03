@@ -2,9 +2,9 @@
 
 CFDEM®coupling case: **gas–solid fluidized bed** (OpenFOAM `cfdemSolverPiso` ↔ LIGGGHTS).
 
-Adapted from the public CFDEM tutorial `cfdemSolverPiso/ErgunTestMPI`, with a taller freeboard and inlet velocity above minimum fluidization.
+Adapted from [CFDEMcoupling-PUBLIC `ErgunTestMPI`](https://github.com/CFDEMproject/CFDEMcoupling-PUBLIC/tree/master/tutorials/cfdemSolverPiso/ErgunTestMPI) with a taller freeboard and inlet velocity above \(U_{mf}\).
 
-**Requires `cfdem:local`.** Do not use `liggghts:local` (DEM-only — no `blockMesh` / `cfdemSolverPiso`).
+**Verified working** on Mac with Docker image **`cfdem:local`**. Do **not** use `liggghts:local` (DEM-only).
 
 ## Case overview
 
@@ -12,17 +12,17 @@ Adapted from the public CFDEM tutorial `cfdemSolverPiso/ErgunTestMPI`, with a ta
 |------|--------|
 | Solver | `cfdemSolverPiso` (4-way CFD–DEM) |
 | Column | Cylinder, D ≈ **27.6 mm**, H = **150 mm** |
-| Particles | ~**4000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
+| Particles | ~**8000** spheres, d = **1 mm**, ρ = **2000 kg/m³** |
 | Contact | Hertz + tangential history (soft demo solids, E = 5×10⁶ Pa) |
-| Fluid (demo) | ρ = 10 kg/m³, ν = 1.5×10⁻⁴ m²/s (same as ErgunTestMPI — not real air) |
+| Fluid (demo) | ρ = 10 kg/m³, ν = 1.5×10⁻⁴ m²/s (not real air) |
 | Inlet U | Ramps **0.02 → 0.15 m/s** (z+) over 0.2 s |
-| CFD Δt | 5×10⁻⁴ s |
-| DEM Δt | 1×10⁻⁵ s |
-| Coupling | every **100** DEM steps (`couple_every 100`); CFD `couplingInterval 50` |
-| End time | **1.0 s** |
-| MPI | **4** ranks (`processors 2 2 1` in DEM; `decomposeParDict` = 4) |
+| CFD Δt / write | 5×10⁻⁴ s / every **0.01 s** |
+| DEM Δt / dump | 1×10⁻⁵ s / every **1000** steps (= **0.01 s**) |
+| Coupling | `couple_every 100` (DEM); `couplingInterval 50` (CFD) |
+| End time | **5.0 s** |
+| MPI | **4** ranks (`processors 2 2 1`; `decomposeParDict` = 4) |
 
-Demo fluid properties keep the case small and stable. For air, change `CFD/0/rho`, `CFD/constant/transportProperties`, and re-estimate \(U_{mf}\) / inlet `U`.
+Demo fluid properties keep the case small and stable. For air, edit `CFD/0/rho`, `CFD/constant/transportProperties`, and re-estimate inlet `U`.
 
 ## Layout
 
@@ -30,30 +30,23 @@ Demo fluid properties keep the case small and stable. For air, change `CFD/0/rho
 fluidized-bed/
 ├── README.md
 ├── Allrun.sh                 # mesh → DEM pack → coupled run
-├── parDEMrun.sh              # LIGGGHTS packing (in.liggghts_init)
-├── parCFDDEMrun.sh           # cfdemSolverPiso + LIGGGHTS (in.liggghts_run)
+├── parDEMrun.sh
+├── parCFDDEMrun.sh
 ├── CFD/
-│   ├── 0/                    # U, p, voidfraction, rho, Us, …
-│   ├── constant/
-│   │   ├── couplingProperties   # drag, void fraction, MPI path to DEM
-│   │   ├── liggghtsCommands
-│   │   ├── transportProperties
-│   │   └── …
-│   ├── system/
-│   │   ├── blockMeshDict
-│   │   ├── controlDict
-│   │   └── …
-│   └── couplingFiles/        # created at runtime
+│   ├── 0/                    # initial fields (tracked in git)
+│   ├── constant/             # couplingProperties, mesh after blockMesh
+│   └── system/
 └── DEM/
     ├── in.liggghts_init      # pack + settle → restart
     ├── in.liggghts_run       # coupled run (started by CFDEM)
-    └── post/                 # dumps, forces, restart
+    ├── dumpsToParaView       # dumps → particles.pvd (physical time)
+    └── post/                 # dumps, VTK/PVD, restart (gitignored)
 ```
 
 ## Prerequisites (Mac + Docker)
 
 1. Docker Desktop running  
-2. Build the CFDEM image **once** from the repo root:
+2. Build **`cfdem:local`** once from the repo root:
 
 ```bash
 cd ~/Documents_Local/GitHub/LIGGGHTS_projects
@@ -61,7 +54,7 @@ docker pull --platform linux/amd64 edoyango/cfdem:3.8.1
 docker build --platform linux/amd64 -f Dockerfile.cfdem -t cfdem:local .
 ```
 
-3. Start a container (every session):
+3. Start a container each session:
 
 ```bash
 docker run -it --rm --platform linux/amd64 \
@@ -80,89 +73,116 @@ cd /simulation/fluidized-bed
 ./Allrun.sh
 ```
 
-What `Allrun.sh` does:
+This will:
 
-1. `blockMesh` (if `CFD/constant/polyMesh` is missing)  
-2. DEM packing via `./parDEMrun.sh` → `DEM/post/restart/liggghts.restart`  
-3. Coupled CFD–DEM via `./parCFDDEMrun.sh` (`decomposePar` + `cfdemSolverPiso`)  
-4. Stops with an error if the DEM restart was not created  
+1. Build the mesh with `blockMesh` (if needed)  
+2. Pack/settle particles (`./parDEMrun.sh` → `DEM/post/restart/liggghts.restart`)  
+3. Run coupled CFD–DEM (`./parCFDDEMrun.sh`)  
+4. Abort if the DEM restart is missing  
+
+Typical wall time on Mac (amd64 emulation): substantially longer than the old 1 s / 4000-particle case (5 s, 8000 particles, 0.01 s I/O).
 
 ### Step by step
 
 ```bash
 cd /simulation/fluidized-bed
 cd CFD && blockMesh && cd ..
-./parDEMrun.sh          # ~50k DEM settle steps → liggghts.restart
-./parCFDDEMrun.sh       # 1 s coupled fluidization
+./parDEMrun.sh          # packing (~80k DEM steps) — delete old restart first if re-packing
+./parCFDDEMrun.sh       # 5 s fluidization
 ```
 
-Optional: `NR_PROCS=4 ./Allrun.sh` — must match `processors` in `DEM/in.liggghts_run` and `CFD/system/decomposeParDict`.
-
 ### Clean re-run
+
+Must delete the old DEM restart so packing uses 8000 particles:
 
 ```bash
 cd /simulation/fluidized-bed
 rm -f DEM/post/restart/liggghts.restart
-rm -rf CFD/processor* CFD/[1-9]* CFD/0.* CFD/probes
+rm -rf DEM/post/dump*.liggghts_run DEM/post/particles_* DEM/post/particles.pvd
+rm -rf CFD/processor* CFD/[1-9]* CFD/0.* CFD/postProcessing CFD/couplingFiles
 ./Allrun.sh
 ```
 
-Remesh only if the column geometry changed:
+Remesh only if geometry changed: `rm -rf CFD/constant/polyMesh`.
+
+## Post-processing in ParaView
+
+Results live on the Mac under this folder (Docker bind mount). CFD writes are usually still **decomposed** under `CFD/processor*`.
+
+### 1. Convert DEM dumps (physical time 0…1 s)
+
+On the Mac (or in the container):
 
 ```bash
-rm -rf CFD/constant/polyMesh
+cd ~/Documents_Local/GitHub/LIGGGHTS_projects/fluidized-bed/DEM
+./dumpsToParaView
 ```
 
-## Post-processing
+Creates `post/particles_*.vtp` and **`post/particles.pvd`**.
 
-On the Mac (results are already in the mounted folder):
+Time mapping: `t = (DEM_step − step0) × 1e−5` so DEM dumps align with CFD at **0.01 s** spacing through **5 s**.
+
+### 2. Open both datasets
+
+```bash
+cd ~/Documents_Local/GitHub/LIGGGHTS_projects/fluidized-bed/CFD
+touch fluidizedBed.foam
+open -a ParaView fluidizedBed.foam
+# then File → Open → ../DEM/post/particles.pvd
+```
+
+| Source | Settings |
+|--------|----------|
+| `CFD/fluidizedBed.foam` | **Case Type → Decomposed Case** → Apply. Color by `voidfraction` or `U`. |
+| `DEM/post/particles.pvd` | Apply. **Representation → Point Gaussian**, or **Glyph → Sphere** (scale by `radius`, Scale Factor = 1). |
+
+Use one time slider: **0, 0.05, …, 1** for both.
+
+**Do not** open CSV as a file series (that gives frame index 0,1,2,…) or legacy `.vtk` inside `.pvd` (broken pipeline / no eye icon). Use **`particles.pvd`** (XML `.vtp`).
+
+### Optional: reconstruct CFD (fields only)
+
+```bash
+cd /simulation/fluidized-bed/CFD
+reconstructPar -noLagrangian
+```
+
+(`-noLagrangian` is required — CFDEM `particleCloud` breaks plain `reconstructPar`.)
+
+### Useful outputs
 
 | Output | Location |
 |--------|----------|
-| CFD fields | `CFD/0.05`, `CFD/0.1`, … (write every 0.05 s) |
+| CFD (decomposed) | `CFD/processor*/0.05` … `1` |
 | DEM dumps | `DEM/post/dump*.liggghts_run` |
+| DEM for ParaView | `DEM/post/particles.pvd` |
 | Drag history | `DEM/post/forces.txt` |
-| DEM restart (end) | `DEM/post/restart/liggghts.restartCFDEM_*` |
-| Run logs | `log_run_liggghts_init_DEM`, `log_run_parallel_cfdemSolverPiso_fluidizedBed_CFDDEM` |
+| Logs | `log_run_liggghts_init_DEM`, `log_run_parallel_cfdemSolverPiso_fluidizedBed_CFDDEM` |
 
-CFD in ParaView:
-
-```bash
-# inside container, or use Mac ParaView on foam files
-cd CFD
-touch fluidizedBed.foam
-# open fluidizedBed.foam in ParaView
-```
-
-Or: `foamToVTK` then open the VTK series.
-
-DEM particles: convert LIGGGHTS dumps with your usual dump→CSV/VTK workflow (similar to `dumpsToParaView` in the DEM-only cases).
-
-## Knobs to change
+## Knobs
 
 | Goal | Edit |
 |------|------|
-| Stronger / weaker fluidization | `CFD/0/U` inlet table (and `CFD/steps_0p1s`) |
+| Stronger / weaker fluidization | `CFD/0/U` (and `CFD/steps_0p1s`) |
 | More / fewer particles | `particles_in_region` in `DEM/in.liggghts_init` |
-| Taller / shorter bed | `blockMeshDict` height + DEM `zplane` / insert region |
+| Geometry | `CFD/system/blockMeshDict` + DEM walls / insert region |
 | Real air | `CFD/0/rho`, `transportProperties` `nu`, then adjust `U` |
 | Longer run | `endTime` in `CFD/system/controlDict` |
-| MPI ranks | `NR_PROCS` / `par*.sh` + `decomposeParDict` + DEM `processors` |
+| MPI ranks | `NR_PROCS` + `decomposeParDict` + DEM `processors` (must match) |
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| `blockMesh: command not found` | Wrong image — exit and start `cfdem:local` |
-| `Cannot open restart file …/liggghts.restart` | DEM init failed; check `log_run_liggghts_init_DEM`, then re-run `./parDEMrun.sh` |
-| `insert/pack … unknown keyword` | Keep LIGGGHTS commands on **one line** (no `\` continuations) |
-| `alphaMin is undefined` in `dividedProps` | Set `alphaMin 0.1;` in `CFD/constant/couplingProperties` |
-| `velFieldName is undefined` in `implicitCoupleProps` | Set `velFieldName`, `granVelFieldName`, `voidfractionFieldName` (already filled for `cfdem:local`) |
-
-The `cfdem:local` image ships an older CFDEM build that **requires** those dictionary entries even when newer tutorials leave them empty.
+| `blockMesh` / `cfdemSolverPiso` not found | Wrong image — use `cfdem:local` |
+| No `liggghts.restart` / coupled run aborts | Check `log_run_liggghts_init_DEM`; keep `insert/pack` on **one line** |
+| `alphaMin` / `velFieldName` undefined | Already set in `CFD/constant/couplingProperties` for this image |
+| `reconstructPar` fails on `particleCloud` | Use `reconstructPar -noLagrangian` |
+| ParaView DEM time is 0…19 | Open **`particles.pvd`**, not CSV series |
+| `particles.pvd` has no eye / no filters | Must be XML `.vtp` collection; re-run `./dumpsToParaView` |
 
 ## Notes
 
-- Keep particle diameter **smaller than ~3 CFD cells** for the divided void-fraction model.
-- Soft Young’s modulus (5×10⁶ Pa) is for a fast demo, not real glass/steel.
-- Source template: [CFDEMcoupling-PUBLIC `ErgunTestMPI`](https://github.com/CFDEMproject/CFDEMcoupling-PUBLIC/tree/master/tutorials/cfdemSolverPiso/ErgunTestMPI).
+- Soft Young’s modulus (5×10⁶ Pa) is for a fast demo, not real glass/steel.  
+- Keep particle diameter smaller than ~3 CFD cells for the divided void-fraction model.  
+- Runtime / post files are gitignored (see `.gitignore`); case inputs under `CFD/0`, `constant`, `system`, and `DEM/in.*` are what you commit.

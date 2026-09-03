@@ -9,11 +9,18 @@ DEM/screen.log
 # DEM dumps & ParaView CSV frames
 DEM/post/dump*
 DEM/post/frame_*.csv
+DEM/post/particles_*.csv
+DEM/post/particles_*.vtk
+DEM/post/particles_*.vtp
+DEM/post/particles.series
+DEM/post/particles.pvd
 DEM/post/init_frame_*.csv
 DEM/post/forces.txt
 DEM/post/restart/liggghts.restart*
 DEM/post/*.vtk
 DEM/post/*.vtu
+DEM/post/*.vtp
+DEM/post/*.pvd
 
 # --- CFD runtime (keep CFD/0 initial fields) ---
 CFD/processor*/
