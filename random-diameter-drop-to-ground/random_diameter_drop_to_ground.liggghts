@@ -6,11 +6,11 @@
 # so sizes are discrete bins from 5-30 mm (~equal particle count).
 
 # 1. Variable Definitions - steel
-variable        youngs       equal 2.1e11
+variable        youngs       equal 2e9
 variable        poisson      equal 0.30
 variable        restitution  equal 0.4
 variable        friction     equal 0.3
-variable        density_val  equal 7850
+variable        density_val  equal 2000
 
 # 2. Initialization
 units           si

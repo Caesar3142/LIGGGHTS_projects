@@ -57,7 +57,9 @@ cd ~/Documents_Local/GitHub/LIGGGHTS_projects/random-diameter-drop-to-ground
 ./dumpsToParaView
 ```
 
-In ParaView: open `frame_*.csv` → **Table To Points** → Glyph spheres scaled by `radius`. Also open `ground_mesh_0.stl`.
+In ParaView: open `frame_*.csv` → **Table To Points** (X=`x`, Y=`y`, Z=`z`) → color by **`vmag`** (velocity magnitude). Glyph spheres scaled by `radius`. Also open `ground_mesh_0.stl`.
+
+CSV columns: `id,type,x,y,z,vx,vy,vz,vmag,radius`
 
 ## Useful tweaks
 

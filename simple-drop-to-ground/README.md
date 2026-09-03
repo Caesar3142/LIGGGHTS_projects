@@ -91,9 +91,12 @@ Frames are written into `post/`.
 ### View in ParaView
 
 1. **File → Open** → select the `frame_*.csv` series → Apply  
-2. Filter **Table To Points** — set X/Y/Z to `x` / `y` / `z`  
-3. Optionally open `ground_mesh_0.stl` (or `1x1m-ground.stl`) to show the ground  
-4. Use Glyph → Sphere with scale mode by `radius` if you want true 20 mm balls
+2. Filter **Table To Points** — set X/Y/Z to `x` / `y` / `z` (positions)  
+3. Color by **`vmag`** (velocity magnitude)  
+4. Optionally Glyph → Sphere scaled by `radius`  
+5. Optionally open `ground_mesh_0.stl` (or `1x1m-ground.stl`) for the ground  
+
+CSV columns: `id,type,x,y,z,vx,vy,vz,vmag,radius`
 
 ## Useful tweaks
 
