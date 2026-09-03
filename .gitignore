@@ -1,6 +1,7 @@
 # Simulation output
 post/
 **/post/
+**/processor*/
 
 # Dump / ParaView exports
 *.dump

@@ -1,0 +1,61 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.0                                   |
+|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// Background mesh for the cyclone STL.
+// snappyHexMesh keeps only the fluid region selected by locationInMesh.
+
+convertToMeters 1;
+
+vertices
+(
+    (-0.18 -0.18 -0.32)
+    ( 0.18 -0.18 -0.32)
+    ( 0.18  0.18 -0.32)
+    (-0.18  0.18 -0.32)
+    (-0.18 -0.18  0.18)
+    ( 0.18 -0.18  0.18)
+    ( 0.18  0.18  0.18)
+    (-0.18  0.18  0.18)
+);
+
+blocks
+(
+    // Base cell size is approximately 8 mm; surface refinement produces
+    // approximately 2 mm cells at the cyclone, inlet and outlet.
+    hex (0 1 2 3 4 5 6 7) (45 45 63) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+patches
+(
+    wall background
+    (
+        (0 4 5 1)
+        (1 5 6 2)
+        (2 6 7 3)
+        (3 7 4 0)
+        (0 1 2 3)
+        (4 7 6 5)
+    )
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //

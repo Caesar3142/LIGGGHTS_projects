@@ -32,6 +32,7 @@ fluidized-bed/
 ├── README.md
 ├── Allrun.sh                 # mesh → DEM pack → coupled run
 ├── Allclean.sh               # wipe CFD + DEM runtime (mesh, restart, dumps)
+├── Allpostprocess.sh         # reconstruct CFD → convert DEM for ParaView
 ├── parDEMrun.sh
 ├── parCFDDEMrun.sh
 ├── CFD/
@@ -105,16 +106,17 @@ cd /simulation/fluidized-bed
 
 Results live on the Mac under this folder (Docker bind mount). CFD writes are usually still **decomposed** under `CFD/processor*`.
 
-### 1. Convert DEM dumps (physical time 0…1 s)
+### Reconstruct CFD and convert DEM
 
-On the Mac (or in the container):
+Inside **`cfdem:local`**, run both operations consecutively:
 
 ```bash
-cd ~/Documents_Local/GitHub/LIGGGHTS_projects/fluidized-bed/DEM
-./dumpsToParaView
+cd /simulation/fluidized-bed
+./Allpostprocess.sh
 ```
 
-Creates `post/particles_*.vtp` and **`post/particles.pvd`**.
+This runs `reconstructPar -noLagrangian`, then creates
+`DEM/post/particles_*.vtp` and **`DEM/post/particles.pvd`**.
 
 Time mapping: `t = (DEM_step − step0) × 1e−5` so DEM dumps align with CFD at **0.01 s** spacing through **5 s**.
 
@@ -136,14 +138,8 @@ Use one time slider: **0, 0.05, …, 1** for both.
 
 **Do not** open CSV as a file series (that gives frame index 0,1,2,…) or legacy `.vtk` inside `.pvd` (broken pipeline / no eye icon). Use **`particles.pvd`** (XML `.vtp`).
 
-### Optional: reconstruct CFD (fields only)
-
-```bash
-cd /simulation/fluidized-bed/CFD
-reconstructPar -noLagrangian
-```
-
-(`-noLagrangian` is required — CFDEM `particleCloud` breaks plain `reconstructPar`.)
+`-noLagrangian` is required because CFDEM `particleCloud` breaks plain
+`reconstructPar`.
 
 ### Useful outputs
 
