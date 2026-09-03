@@ -5,8 +5,8 @@
 # 1. Variable Definitions
 variable        youngs       equal 5e7
 variable        poisson      equal 0.25
-variable        restitution  equal 0.5
-variable        friction     equal 0.4
+variable        restitution  equal 0.7
+variable        friction     equal 0.0
 variable        density_val  equal 2500
 variable        p_diameter   equal 0.5
 
@@ -28,7 +28,7 @@ fix             m2 all property/global poissonsRatio peratomtype ${poisson}
 fix             m3 all property/global coefficientRestitution atomtypepair 1 ${restitution}
 fix             m4 all property/global coefficientFriction atomtypepair 1 ${friction}
 
-pair_style      gran model hertz tangential history
+pair_style      gran model hertz tangential no_history
 pair_coeff      * *
 
 # 5. Neighbor List settings
@@ -41,10 +41,10 @@ timestep        0.00001
 
 # 7. STL ground mesh wall (file in this case folder)
 fix             ground all mesh/surface file 10x10m-ground.stl type 1
-fix             walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes ground
+fix             walls all wall/gran model hertz tangential no_history mesh n_meshes 1 meshes ground
 
 # Soft ceiling so particles cannot leave the domain upward
-fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 11.0
+fix             z_wall_hi all wall/gran model hertz tangential no_history primitive type 1 zplane 11.0
 
 # 8. Particle generation above the ground (top of STL is z = 0)
 fix             m5 all property/global density peratomtype ${density_val}

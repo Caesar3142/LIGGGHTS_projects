@@ -10,6 +10,7 @@ LIGGGHTS case: particles fall under gravity onto a **10×10 m STL ground mesh**,
 | Ground mesh | `10x10m-ground.stl` (ASCII, z = 0 plane, 0–10 m in x/y) |
 | Particles | ~700 spheres, diameter 0.5 m, density 2500 kg/m³ |
 | Contact model | Hertz + tangential history |
+| Friction / restitution | 0.0 / 0.7 (`tangential no_history` → free slip) |
 | Gravity | 9.81 m/s² straight down |
 | Timestep | 1×10⁻⁵ s |
 | Run length | 500 000 steps (~5 s physical time) |
@@ -74,51 +75,14 @@ exit
 
 ## Convert dumps for ParaView (on Mac)
 
-From a Mac terminal (outside Docker):
+From the case folder:
 
 ```bash
-cd ~/Documents_Local/GitHub/LIGGGHTS_projects/simple-drop-to-ground/post
-
-python3 -c "
-with open('trajectory.dump', 'r') as f:
-    lines = f.readlines()
-
-current_time = 0
-frame_data = []
-columns_header = 'id,type,x,y,z,vx,vy,vz,radius\n'
-
-i = 0
-while i < len(lines):
-    line = lines[i].strip()
-    if 'ITEM: TIMESTEP' in line:
-        if frame_data:
-            with open(f'frame_{current_time}.csv', 'w') as out:
-                out.write(columns_header + ''.join(frame_data))
-            frame_data = []
-        current_time = int(lines[i+1].strip())
-        i += 2
-        continue
-
-    if 'ITEM:' in line:
-        i += 1
-        continue
-
-    parts = line.split()
-    if len(parts) == 9:
-        try:
-            int(parts[0])
-            frame_data.append(','.join(parts) + '\n')
-        except ValueError:
-            pass
-    i += 1
-
-if frame_data:
-    with open(f'frame_{current_time}.csv', 'w') as out:
-        out.write(columns_header + ''.join(frame_data))
-
-print('Success! Columns aligned and animation frames updated.')
-"
+cd ~/Documents_Local/GitHub/LIGGGHTS_projects/simple-drop-to-ground
+./dumpsToParaView
 ```
+
+Frames are written into `post/`.
 
 ### View in ParaView
 
@@ -133,5 +97,6 @@ print('Success! Columns aligned and animation frames updated.')
 | Longer settle time | Increase `run` (e.g. `750000`) |
 | More / fewer particles | Change `spawner` region or `lattice` spacing |
 | Softer bounce | Lower `restitution` |
+| More / less slipping | Raise / lower `friction`; `tangential no_history` = free slip |
 | Different ground | Replace `10x10m-ground.stl` (ASCII preferred); keep name or update the `mesh/surface file ...` line |
 | Dump more often | Lower the dump interval (currently `5000`) |
