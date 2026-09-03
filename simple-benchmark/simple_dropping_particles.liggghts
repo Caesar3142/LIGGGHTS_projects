@@ -60,7 +60,7 @@ thermo_style    custom step atoms ke cpu
 thermo          1000
 thermo_modify   lost ignore
 
-# 11. Data Dumps (single master file)
+# 11. Data Dumps (written under this case folder)
 shell           mkdir post
 dump            dmp all custom 2000 post/trajectory.dump id type x y z vx vy vz radius
 

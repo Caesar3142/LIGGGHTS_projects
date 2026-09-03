@@ -1,0 +1,15 @@
+# Simulation output
+post/
+**/post/
+
+# Dump / ParaView exports
+*.dump
+frame_*.csv
+
+# Run logs
+log.liggghts
+screen.log
+*.log
+
+# macOS
+.DS_Store
