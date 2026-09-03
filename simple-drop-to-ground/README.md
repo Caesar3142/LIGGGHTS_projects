@@ -1,22 +1,22 @@
 # simple-drop-to-ground
 
-LIGGGHTS case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL ground mesh, bounce, and settle.
+LIGGGHTS case: **20 mm steel spheres** fall **0.5 m** onto a **1×1 m** STL ground mesh tilted **~12°**, then slide downhill and settle.
 
 ## Case overview
 
 | Item | Value |
 |------|--------|
 | Input script | `simple_dropping_to_ground.liggghts` |
-| Ground mesh | `1x1m-ground.stl` (ASCII, z = 0, 0–1 m in x/y) |
+| Ground mesh | `1x1m-ground.stl` (ASCII, 1×1 m, tilted ~12°, high at x=0 → low at x=1) |
 | Particles | Steel spheres, diameter **20 mm** (0.02 m) |
 | Density | 7850 kg/m³ |
 | Young’s modulus / Poisson | 2.1×10¹¹ Pa / 0.30 (`hard_particles yes` required) |
 | Restitution / friction | 0.7 / 0.15 |
 | Contact model | Hertz + tangential history |
-| Drop height | 0.5 m (particle surface above ground) |
+| Drop height | 0.5 m above the high end of the ramp |
 | Gravity | 9.81 m/s² straight down |
 | Timestep | 1×10⁻⁶ s (stiff steel contacts) |
-| Run length | 2 000 000 steps (~2 s physical time) |
+| Run length | 3 000 000 steps (~3 s physical time) |
 | Outputs | `post/trajectory.dump`, `post/ground_mesh_*.stl`, logs |
 
 Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, particles have settled. Increase `run` if they are still bouncing.

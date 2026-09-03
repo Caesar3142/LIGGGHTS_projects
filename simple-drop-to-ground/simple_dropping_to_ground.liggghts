@@ -1,5 +1,5 @@
 # ===================================================
-# Steel balls (20 mm) drop 0.5 m onto 1x1 m ground
+# Steel balls (20 mm) drop 0.5 m onto tilted 1x1 m ground
 # ===================================================
 
 # 1. Variable Definitions - steel
@@ -19,8 +19,8 @@ newton          off
 communicate     single vel yes
 hard_particles  yes
 
-# 3. Domain - 1x1 m ground at z = 0, drop height 0.5 m
-region          reg block -0.05 1.05 -0.05 1.05 -0.05 1.0 units box
+# 3. Domain - 1x1 m ground tilted 12 deg (high at x=0, low at x=1)
+region          reg block -0.05 1.05 -0.05 1.05 -0.25 1.2 units box
 create_box      1 reg
 
 # 4. Material Properties & Contact Model Setup
@@ -41,18 +41,19 @@ neigh_modify    delay 0 every 1 check yes
 fix             grav all gravity 9.81 vector 0.0 0.0 -1.0
 timestep        0.000001
 
-# 7. STL ground mesh wall (1x1 m plane at z = 0)
+# 7. STL ground mesh wall (1x1 m, tilted ~12 deg)
 fix             ground all mesh/surface file 1x1m-ground.stl type 1
 fix             walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes ground
 
 # Soft ceiling
-fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 0.95
+fix             z_wall_hi all wall/gran model hertz tangential history primitive type 1 zplane 1.15
 
-# 8. Particle generation - one layer, surface ~0.5 m above ground
-#     center z = 0.5 + radius = 0.51
+# 8. Particle generation - drop ~0.5 m above the HIGH end of the ramp (small x)
+#     ground z at x~0.2 is ~+0.064; centers near z ~= 0.58
+#     spawn slab must be thick enough to contain a lattice plane (sc 0.025)
 fix             m5 all property/global density peratomtype ${density_val}
 
-region          spawner block 0.1 0.9 0.1 0.9 0.51 0.53 units box
+region          spawner block 0.15 0.40 0.25 0.75 0.56 0.59 units box
 lattice         sc 0.025
 create_atoms    1 region spawner
 
@@ -74,6 +75,6 @@ dump            dmp all custom 10000 post/trajectory.dump id type x y z vx vy vz
 # Optional: export mesh for ParaView overlay (* required by LIGGGHTS mesh/stl)
 dump            mesh1 all mesh/stl 100000000 post/ground_mesh_*.stl ground
 
-# 12. Run until settled (~2 s physical time at dt = 1e-6)
+# 12. Run until they slide/settle (~3 s physical time at dt = 1e-6)
 # Watch KE in thermo: when it stays near zero, particles have settled.
-run             2000000
+run             3000000
