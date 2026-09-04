@@ -76,12 +76,17 @@ cd /simulation/cyclone-separator
 # optional: END_TIME=2.0 ./parCFDDEMcontinue.sh
 ```
 
-This script:
+This continues **both CFD and DEM/DPM** (particles are restored from a DEM
+restart or matching dump, then keep moving/injecting). After a continue,
+refresh ParaView data:
 
-1. Detects the latest common time under `CFD/processor*`
-2. Loads a matching DEM binary restart, or builds one from the matching dump
-3. Sets `startFrom latestTime` and points CFDEM at `DEM/in.liggghts_continue`
-4. Runs `cfdemSolverPiso -parallel` **without** `decomposePar -force`
+```bash
+./Allpostprocess.sh
+```
+
+Then in ParaView use **File → Reload Files** (or reopen
+`cycloneSeparator.foam` and `particles.pvd`). Old post-processed files stay
+stale until you re-run `Allpostprocess.sh`.
 
 For an optional DEM-only check that LIGGGHTS can read `body.stl`:
 

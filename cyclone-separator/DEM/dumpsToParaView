@@ -320,11 +320,15 @@ def main():
     ))
     print("Success! %d frames." % total)
     print("")
-    print("ParaView (times match CFD 0..1 s):")
+    print("ParaView (times match CFD absolute time):")
     print("  1. File -> Open -> DEM/post/particles.pvd  (XML .vtp collection)")
-    print("  2. Click Apply if needed — eye icon should appear")
+    print("  2. Click Apply if needed - eye icon should appear")
     print("  3. Representation = Point Gaussian (or Glyph -> Sphere by radius)")
     print("  4. Reset Camera; also open CFD/cycloneSeparator.foam")
+    if pvd_entries[-1][0] + 1e-12 < max(steps) * args.dt:
+        pass
+    print("  Note: if CFD time >> DEM PVD time, CFD/DEM clocks are desynced;")
+    print("        use ./parCFDDEMcontinue.sh (updated) to resume from a synced time.")
 
 
 if __name__ == "__main__":

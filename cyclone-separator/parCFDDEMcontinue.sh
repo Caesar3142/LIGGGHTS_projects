@@ -1,8 +1,12 @@
 #!/bin/bash
 
 #===================================================================#
-# Continue the cyclone CFD-DEM run from the last written time
+# Continue the cyclone CFD-DEM run from the last *synced* write time
 # (parallel, without re-decomposing processor* directories).
+#
+# CFD and DEM must resume from the SAME physical time. If CFD has
+# advanced further than DEM dumps/restarts (e.g. after a bad continue),
+# this script resumes from the latest time where BOTH exist.
 #
 # Usage (inside cfdem:local):
 #   cd /simulation/cyclone-separator
@@ -23,8 +27,8 @@ demPath="$casePath/DEM"
 restartDir="$demPath/post/restart"
 nrProcs="${NR_PROCS:-8}"
 demDt=0.000001
+writeInterval=0.005
 feedTotal=250
-feedRate=500
 
 controlDict="$cfdPath/system/controlDict"
 couplingProps="$cfdPath/constant/couplingProperties"
@@ -40,88 +44,111 @@ if ! compgen -G "$cfdPath/processor*" >/dev/null; then
     exit 1
 fi
 
-# Latest CFD write time across processor directories.
-latestTime="$(
-python3 - <<'PY' "$cfdPath" "$nrProcs"
+# Resolve a common resume time where CFD + DEM both have data.
+syncInfo="$(
+python3 - <<'PY' "$cfdPath" "$demPath" "$restartDir" "$nrProcs" "$demDt" "$writeInterval"
 import os, sys, re
-cfd, nprocs = sys.argv[1], int(sys.argv[2])
-times = []
+cfd, dem, rdir, nprocs, dt, wint = sys.argv[1:7]
+nprocs = int(nprocs); dt = float(dt); wint = float(wint)
+
 pat = re.compile(r"^[0-9]+(\.[0-9]+)?$")
+counts = {}
 for p in range(nprocs):
     d = os.path.join(cfd, f"processor{p}")
     if not os.path.isdir(d):
         sys.exit(f"missing {d}")
     for name in os.listdir(d):
-        if pat.match(name) and name != "0":
-            times.append(float(name))
-if not times:
-    sys.exit("no written time directories found under CFD/processor*")
-# Require the time to exist on every rank.
-from collections import Counter
-counts = Counter(times)
-common = [t for t, c in counts.items() if c == nprocs]
-if not common:
-    sys.exit("no common written time found on all processors")
-print(max(common))
+        if pat.match(name):
+            t = float(name)
+            counts[t] = counts.get(t, 0) + 1
+cfd_times = sorted(t for t, c in counts.items() if c == nprocs and t > 0)
+if not cfd_times:
+    sys.exit("no common CFD written times on all processors")
+
+dump_steps = []
+post = os.path.join(dem, "post")
+for name in os.listdir(post):
+    m = re.match(r"dump(\d+)\.liggghts_run$", name)
+    if m:
+        dump_steps.append(int(m.group(1)))
+dump_steps.sort()
+
+restart_steps = []
+if os.path.isdir(rdir):
+    for name in os.listdir(rdir):
+        m = re.match(r"liggghts\.restart\.(\d+)$", name)
+        if m:
+            restart_steps.append(int(m.group(1)))
+restart_steps.sort()
+
+def near_write(t):
+    # Snap to write interval grid used by this case.
+    return round(round(t / wint) * wint, 9)
+
+# Candidate sync times: CFD times that also have a DEM dump or restart.
+tol = 0.5 * wint
+sync_candidates = []
+for t in cfd_times:
+    step = int(round(t / dt))
+    has_dump = step in dump_steps
+    has_restart = step in restart_steps
+    # Also accept nearest dump within half write interval.
+    if not has_dump and dump_steps:
+        nearest = min(dump_steps, key=lambda s: abs(s - step))
+        if abs(nearest * dt - t) <= tol:
+            step = nearest
+            has_dump = True
+    if not has_restart and restart_steps:
+        nearest = min(restart_steps, key=lambda s: abs(s - step))
+        if abs(nearest * dt - t) <= tol:
+            step = nearest
+            has_restart = True
+    if has_dump or has_restart:
+        sync_candidates.append((t, step, has_dump, has_restart))
+
+if not sync_candidates:
+    sys.exit(
+        "no overlapping CFD/DEM write times.\n"
+        f"  CFD max={cfd_times[-1]}\n"
+        f"  DEM dump max={dump_steps[-1]*dt if dump_steps else None}\n"
+        f"  DEM restart max={restart_steps[-1]*dt if restart_steps else None}"
+    )
+
+# Resume from the latest overlapping time (keeps CFD and DEM clocks aligned).
+t_sync, step_sync, has_dump, has_restart = sync_candidates[-1]
+t_cfd = cfd_times[-1]
+dem_times = []
+if dump_steps:
+    dem_times.append(dump_steps[-1] * dt)
+if restart_steps:
+    dem_times.append(restart_steps[-1] * dt)
+t_dem = max(dem_times) if dem_times else 0.0
+
+print(f"{t_cfd} {t_dem} {t_sync} {step_sync} {int(has_dump)} {int(has_restart)}")
 PY
 )"
 
-echo "Latest CFD time: $latestTime"
+read -r latestCfd latestDem syncTime demStep hasDump hasRestart <<< "$syncInfo"
 
-# Matching DEM step for dump/restart naming.
-demStep="$(
-python3 - <<'PY' "$latestTime" "$demDt"
+echo "Latest CFD time:     $latestCfd"
+echo "Latest DEM data:     $latestDem"
+echo "Synced resume time:  $syncTime  (DEM step $demStep)"
+
+if python3 - <<PY
 import sys
-t = float(sys.argv[1]); dt = float(sys.argv[2])
-print(int(round(t / dt)))
+cfd, dem, sync = float("$latestCfd"), float("$latestDem"), float("$syncTime")
+sys.exit(0 if abs(cfd - sync) < 1e-12 else 1)
 PY
-)"
+then
+    echo "CFD and DEM are aligned."
+else
+    echo "WARNING: CFD is ahead of DEM dumps/restarts."
+    echo "         Resuming from t=$syncTime so particle and fluid clocks match."
+    echo "         CFD folders after t=$syncTime will be overwritten as the run advances."
+fi
 
 dumpFile="$demPath/post/dump${demStep}.liggghts_run"
-echo "Matching DEM step: $demStep"
-
-pick_restart_source() {
-    local candidates=()
-    # Preferred: exact timestep restart from LIGGGHTS `restart` command.
-    if [ -f "$restartDir/liggghts.restart.${demStep}" ]; then
-        candidates+=("$restartDir/liggghts.restart.${demStep}")
-    fi
-    # CFDEM writeLiggghts naming variants.
-    if compgen -G "$restartDir/liggghts.restartCFDEM_${latestTime}" >/dev/null; then
-        candidates+=("$restartDir/liggghts.restartCFDEM_${latestTime}")
-    fi
-    if [ -f "$restartDir/liggghts.restartCFDEM" ]; then
-        candidates+=("$restartDir/liggghts.restartCFDEM")
-    fi
-    # Any timestamped restartCFDEM_* — take numerically latest.
-    if compgen -G "$restartDir/liggghts.restartCFDEM_*" >/dev/null; then
-        local latest
-        latest="$(ls -1 "$restartDir"/liggghts.restartCFDEM_* | sort -t_ -k2 -n | tail -1)"
-        candidates+=("$latest")
-    fi
-    # Any liggghts.restart.* — take highest step <= demStep.
-    if compgen -G "$restartDir/liggghts.restart.*" >/dev/null; then
-        local best=""
-        local bestStep=-1
-        local f step
-        for f in "$restartDir"/liggghts.restart.*; do
-            step="${f##*.}"
-            if [[ "$step" =~ ^[0-9]+$ ]] && [ "$step" -le "$demStep" ] && [ "$step" -gt "$bestStep" ]; then
-                best="$f"
-                bestStep="$step"
-            fi
-        done
-        if [ -n "$best" ]; then
-            candidates+=("$best")
-        fi
-    fi
-
-    if [ "${#candidates[@]}" -gt 0 ]; then
-        printf '%s\n' "${candidates[0]}"
-        return 0
-    fi
-    return 1
-}
+exactRestart="$restartDir/liggghts.restart.${demStep}"
 
 build_restart_from_dump() {
     local dump="$1"
@@ -129,24 +156,18 @@ build_restart_from_dump() {
     local tmpDir dataFile makeInput nAtoms remain
 
     if [ ! -f "$dump" ]; then
-        echo "ERROR: no DEM dump at $dump and no binary restart found."
-        echo "Cannot continue particle state. Re-run with the updated in.liggghts_run"
-        echo "(which writes DEM/post/restart/liggghts.restart.*) or provide a restart file."
+        echo "ERROR: no DEM dump at $dump and no binary restart for step $demStep."
         exit 1
     fi
 
-    echo "No DEM binary restart found — building one from $dump"
-
+    echo "Building DEM restart from $dump"
     tmpDir="$(mktemp -d "$demPath/post/tmp_continue.XXXXXX")"
     dataFile="$tmpDir/particles.data"
     makeInput="$tmpDir/make_restart.liggghts"
 
     nAtoms="$(python3 "$demPath/dump_to_data.py" "$dump" "$dataFile")"
-
     remain=$(( feedTotal - nAtoms ))
-    if [ "$remain" -lt 0 ]; then
-        remain=0
-    fi
+    if [ "$remain" -lt 0 ]; then remain=0; fi
 
     cat > "$makeInput" <<EOF
 echo            both
@@ -179,19 +200,15 @@ EOF
 
     "${CFDEM_LIGGGHTS_EXEC}" -in "$makeInput"
     rm -rf "$tmpDir"
-
-    # Rewrite remaining particle budget in the active continue DEM input.
     sed -i "s/nparticles [0-9][0-9]*/nparticles ${remain}/" "$continueInputRun"
     echo "Built DEM restart with $nAtoms atoms; remaining insert budget = $remain"
 }
 
 cp -f "$continueInput" "$continueInputRun"
 
-srcRestart=""
-if srcRestart="$(pick_restart_source)"; then
-    echo "Using DEM restart: $srcRestart"
-    cp -f "$srcRestart" "$continueRestart"
-    # Estimate remaining insert budget from dump atom count when available.
+if [ -f "$exactRestart" ]; then
+    echo "Using DEM restart: $exactRestart"
+    cp -f "$exactRestart" "$continueRestart"
     if [ -f "$dumpFile" ]; then
         nAtoms="$(awk '/ITEM: NUMBER OF ATOMS/{getline; print; exit}' "$dumpFile")"
         remain=$(( feedTotal - nAtoms ))
@@ -199,8 +216,11 @@ if srcRestart="$(pick_restart_source)"; then
         sed -i "s/nparticles [0-9][0-9]*/nparticles ${remain}/" "$continueInputRun"
         echo "Atoms in matching dump: $nAtoms; remaining insert budget = $remain"
     fi
-else
+elif [ -f "$dumpFile" ]; then
     build_restart_from_dump "$dumpFile" "$continueRestart"
+else
+    echo "ERROR: need DEM/post/restart/liggghts.restart.${demStep} or $dumpFile"
+    exit 1
 fi
 
 # Backup and retarget OpenFOAM / CFDEM inputs for continue.
@@ -216,16 +236,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
-python3 - <<'PY' "$controlDict" "$latestTime" "${END_TIME:-}"
+python3 - <<'PY' "$controlDict" "$syncTime" "${END_TIME:-}"
 import re, sys
-path, latest, end = sys.argv[1], sys.argv[2], sys.argv[3]
+path, sync, end = sys.argv[1], sys.argv[2], sys.argv[3]
 text = open(path).read()
-text = re.sub(r"(?m)^startFrom\s+\S+;", "startFrom       latestTime;", text)
-text = re.sub(r"(?m)^startTime\s+\S+;", f"startTime       {latest};", text)
+# Use explicit startTime (not latestTime) so a desynced newer CFD folder
+# cannot pull the fluid ahead of the DEM restart.
+text = re.sub(r"(?m)^startFrom\s+\S+;", "startFrom       startTime;", text)
+text = re.sub(r"(?m)^startTime\s+\S+;", f"startTime       {sync};", text)
 if end:
     text = re.sub(r"(?m)^endTime\s+\S+;", f"endTime         {end};", text)
 open(path, "w").write(text)
-print(f"controlDict: startFrom latestTime (from {latest})" + (f", endTime {end}" if end else ""))
+print(f"controlDict: startFrom startTime={sync}" + (f", endTime {end}" if end else ""))
 PY
 
 python3 - <<'PY' "$couplingProps"
@@ -247,12 +269,10 @@ logfileName="log_$headerText"
 solverName="cfdemSolverPiso"
 machineFileName="none"
 debugMode="off"
-# args: reconstructCase decomposeCase
-# Do NOT re-decompose — that would wipe processor time directories.
 reconstructCase="false"
 decomposeCase="false"
 
-echo "Continuing parallel CFD-DEM from t=$latestTime (NR_PROCS=$nrProcs)..."
+echo "Continuing parallel CFD-DEM from t=$syncTime (NR_PROCS=$nrProcs)..."
 parCFDDEMrun "$logpath" "$logfileName" "$casePath" "$headerText" "$solverName" \
     "$nrProcs" "$machineFileName" "$debugMode" "$reconstructCase" "$decomposeCase"
 
@@ -263,3 +283,4 @@ if [ -f "$casePath/$logfileName" ] &&
 fi
 
 echo "Continue finished. Log: $casePath/$logfileName"
+echo "Re-run ./Allpostprocess.sh and Reload Files in ParaView."
