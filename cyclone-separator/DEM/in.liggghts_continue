@@ -1,4 +1,5 @@
-# Coupled cyclone DEM: periodically inject dust/fine sand through inlet.stl.
+# DEM continue: resume from a binary restart written during a prior coupled run.
+# Generated/selected by ../parCFDDEMcontinue.sh — do not start from this file alone.
 echo            both
 log             ../DEM/log.liggghts
 
@@ -13,8 +14,8 @@ newton          off
 units           si
 processors      2 2 2
 
-region          domain block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
-create_box      1 domain
+# Binary restart written by LIGGGHTS `restart` / CFDEM writeLiggghts.
+read_restart    ../DEM/post/restart/liggghts.continue
 
 neighbor        0.0003 bin
 neigh_modify    delay 0
@@ -30,24 +31,19 @@ pair_coeff  * *
 timestep    0.000001
 fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
 
-# Cyclone wall. inlet.stl and outlet.stl are boundary caps, not particle walls.
 fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclusion_list read ../DEM/body.exclude curvature_tolerant yes
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
-# Quartz-like dust/fine-sand distribution: d = 0.15, 0.30 and 0.60 mm.
-# Fractions are mass fractions. Feed is capped at 250 particles (~1/4 of prior case).
+# Keep injecting at the same rate. nparticles is a soft upper bound for the
+# remaining feed after restart; parCFDDEMcontinue.sh may rewrite this line.
 fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000075
 fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000150
 fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.000300
 fix         feedDist all particledistribution/discrete 32452867 3 dust 0.10 fine 0.35 sand 0.55
 
-# Thin volume immediately downstream of inlet.stl. The insertion speed exactly
-# matches the fully developed CFD inlet speed: 15 m/s in the -x direction.
-# 5000 DEM steps = 0.005 s between insertion batches.
 region      feed block 0.138 0.145 -0.090 -0.050 -0.020 0.020 units box
 fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 5000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
 
-# CFD coupling (OpenFOAM / CFDEM)
 fix         cfd all couple/cfd couple_every 1000 mpi
 fix         cfd2 all couple/cfd/force/implicit
 
@@ -63,17 +59,14 @@ variable    explicitDragY equal c_explDrag[2]
 variable    explicitDragZ equal c_explDrag[3]
 variable    time equal step*dt
 
-fix         extra all print 100 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
+fix         extra all print 100 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces_continue.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
 
 compute         rke all erotate/sphere
 thermo_style    custom step atoms ke c_rke vol
 thermo          1000
 thermo_modify   lost ignore norm no
 
-# Dump every 5000 DEM steps = 0.005 s.
 dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
-
-# Binary DEM restart every write interval (needed by ./parCFDDEMcontinue.sh).
 restart         5000 ../DEM/post/restart/liggghts.restart.*
 
 run             0

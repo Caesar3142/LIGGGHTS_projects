@@ -65,6 +65,24 @@ cd /simulation/cyclone-separator
 `Allrun.sh` builds and checks the cyclone mesh, then launches the coupled
 simulation. The cyclone starts empty; there is no packed-bed initialization.
 
+### Continue from the last written time
+
+If the run stops (walltime, crash, or interrupt), resume in parallel without
+re-meshing or re-decomposing:
+
+```bash
+cd /simulation/cyclone-separator
+./parCFDDEMcontinue.sh
+# optional: END_TIME=2.0 ./parCFDDEMcontinue.sh
+```
+
+This script:
+
+1. Detects the latest common time under `CFD/processor*`
+2. Loads a matching DEM binary restart, or builds one from the matching dump
+3. Sets `startFrom latestTime` and points CFDEM at `DEM/in.liggghts_continue`
+4. Runs `cfdemSolverPiso -parallel` **without** `decomposePar -force`
+
 For an optional DEM-only check that LIGGGHTS can read `body.stl`:
 
 ```bash
