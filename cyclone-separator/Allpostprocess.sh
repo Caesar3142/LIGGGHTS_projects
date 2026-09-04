@@ -27,7 +27,7 @@ fi
 latestProc="$(ls -1 "$cfdPath/processor0" | awk '/^[0-9]/ && $0 != "0" {print}' | sort -n | tail -1)"
 latestDumpStep="$(ls -1 "$demPath/post"/dump*.liggghts_run | sed 's|.*/dump||;s|\.liggghts_run||' | sort -n | tail -1)"
 latestDumpTime="$(python3 - <<PY
-print(round(int("$latestDumpStep") * 1e-6, 6))
+print(round(int("$latestDumpStep") * 2e-6, 6))
 PY
 )"
 
@@ -61,7 +61,7 @@ echo "Reconstructing CFD fields..."
 echo "Converting DEM dumps for ParaView (rewrites particles.pvd)..."
 # step0=0 so physical time = DEM_step * dt matches CFD absolute time
 # after cold start and after ./parCFDDEMcontinue.sh.
-"$demPath/dumpsToParaView" --step0 0 "$@"
+"$demPath/dumpsToParaView" --step0 0 --dt 2e-6 "$@"
 
 echo "Post-processing complete:"
 echo "  CFD: $cfdPath/cycloneSeparator.foam"

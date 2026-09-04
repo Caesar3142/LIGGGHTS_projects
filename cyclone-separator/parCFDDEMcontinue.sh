@@ -26,9 +26,9 @@ cfdPath="$casePath/CFD"
 demPath="$casePath/DEM"
 restartDir="$demPath/post/restart"
 nrProcs="${NR_PROCS:-8}"
-demDt=0.000001
+demDt=0.000002
 writeInterval=0.005
-feedTotal=250
+feedTotal=125
 
 controlDict="$cfdPath/system/controlDict"
 couplingProps="$cfdPath/constant/couplingProperties"
@@ -200,11 +200,44 @@ EOF
 
     "${CFDEM_LIGGGHTS_EXEC}" -in "$makeInput"
     rm -rf "$tmpDir"
-    sed -i "s/nparticles [0-9][0-9]*/nparticles ${remain}/" "$continueInputRun"
     echo "Built DEM restart with $nAtoms atoms; remaining insert budget = $remain"
 }
 
+# After read_restart, insert/rate/region must have start >= current DEM step
+# or LIGGGHTS aborts with: "'start' step can not be before current step".
+patch_continue_inject() {
+    local remain="$1"
+    python3 - <<'PY' "$continueInputRun" "$remain" "$demStep"
+import re, sys
+path, remain, step = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path, encoding="utf-8").read()
+text = re.sub(r"(nparticles\s+)\d+", r"\g<1>" + remain, text, count=1)
+
+def patch_inject(m):
+    line = m.group(0)
+    line = re.sub(r"\s+start\s+\d+", "", line)
+    # Place start just before "region feed" (required keyword order).
+    if re.search(r"\sregion\s+feed\b", line):
+        line = re.sub(r"(\sregion\s+feed\b)", f" start {step}\\1", line, count=1)
+    else:
+        line = line.rstrip() + f" start {step}"
+    return line
+
+text2, n = re.subn(
+    r"(?m)^fix\s+inject\s+all\s+insert/rate/region\b.*$",
+    patch_inject,
+    text,
+    count=1,
+)
+if n != 1:
+    sys.exit("ERROR: could not patch fix inject in continue input")
+open(path, "w", encoding="utf-8").write(text2)
+print(f"inject: nparticles={remain}, start={step}")
+PY
+}
+
 cp -f "$continueInput" "$continueInputRun"
+remain="$feedTotal"
 
 if [ -f "$exactRestart" ]; then
     echo "Using DEM restart: $exactRestart"
@@ -213,15 +246,22 @@ if [ -f "$exactRestart" ]; then
         nAtoms="$(awk '/ITEM: NUMBER OF ATOMS/{getline; print; exit}' "$dumpFile")"
         remain=$(( feedTotal - nAtoms ))
         if [ "$remain" -lt 0 ]; then remain=0; fi
-        sed -i "s/nparticles [0-9][0-9]*/nparticles ${remain}/" "$continueInputRun"
         echo "Atoms in matching dump: $nAtoms; remaining insert budget = $remain"
+    else
+        echo "WARNING: no matching dump; keeping nparticles=$remain (may over-insert)."
     fi
 elif [ -f "$dumpFile" ]; then
     build_restart_from_dump "$dumpFile" "$continueRestart"
+    # remain was computed inside build_restart_from_dump; recompute for patch.
+    nAtoms="$(awk '/ITEM: NUMBER OF ATOMS/{getline; print; exit}' "$dumpFile")"
+    remain=$(( feedTotal - nAtoms ))
+    if [ "$remain" -lt 0 ]; then remain=0; fi
 else
     echo "ERROR: need DEM/post/restart/liggghts.restart.${demStep} or $dumpFile"
     exit 1
 fi
+
+patch_continue_inject "$remain"
 
 # Backup and retarget OpenFOAM / CFDEM inputs for continue.
 controlBak="$controlDict.continuebak"

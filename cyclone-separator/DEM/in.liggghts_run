@@ -27,7 +27,7 @@ fix         m4 all property/global coefficientFriction peratomtypepair 1 0.40
 pair_style  gran model hertz tangential history
 pair_coeff  * *
 
-timestep    0.000001
+timestep    0.000002
 fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
 
 # Cyclone wall. inlet.stl and outlet.stl are boundary caps, not particle walls.
@@ -35,7 +35,7 @@ fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclus
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
 # Quartz-like dust/fine-sand distribution: d = 0.15, 0.30 and 0.60 mm.
-# Fractions are mass fractions. Feed is capped at 250 particles (~1/4 of prior case).
+# Fractions are mass fractions. Feed is capped at 125 particles (half of prior case).
 fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000075
 fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000150
 fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.000300
@@ -43,12 +43,13 @@ fix         feedDist all particledistribution/discrete 32452867 3 dust 0.10 fine
 
 # Thin volume immediately downstream of inlet.stl. The insertion speed exactly
 # matches the fully developed CFD inlet speed: 15 m/s in the -x direction.
-# 5000 DEM steps = 0.005 s between insertion batches.
+# 25000 DEM steps = 0.05 s between insertion batches (dt = 2e-6 s).
+# 10x the previous spawn spacing (was every 0.005 s).
 region      feed block 0.138 0.145 -0.090 -0.050 -0.020 0.020 units box
-fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 5000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 125 particlerate 250 insert_every 25000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
 
-# CFD coupling (OpenFOAM / CFDEM)
-fix         cfd all couple/cfd couple_every 1000 mpi
+# CFD coupling (OpenFOAM / CFDEM): 5000 * 2e-6 s = 0.01 s (= 4 CFD steps)
+fix         cfd all couple/cfd couple_every 5000 mpi
 fix         cfd2 all couple/cfd/force/implicit
 
 fix         integr all nve/sphere
@@ -63,17 +64,17 @@ variable    explicitDragY equal c_explDrag[2]
 variable    explicitDragZ equal c_explDrag[3]
 variable    time equal step*dt
 
-fix         extra all print 100 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
+fix         extra all print 500 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
 
 compute         rke all erotate/sphere
 thermo_style    custom step atoms ke c_rke vol
-thermo          1000
+thermo          5000
 thermo_modify   lost ignore norm no
 
-# Dump every 5000 DEM steps = 0.005 s.
-dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
+# Dump every 2500 DEM steps = 0.005 s (save interval unchanged).
+dump            dmp all custom 2500 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
 
 # Binary DEM restart every write interval (needed by ./parCFDDEMcontinue.sh).
-restart         5000 ../DEM/post/restart/liggghts.restart.*
+restart         2500 ../DEM/post/restart/liggghts.restart.*
 
 run             0

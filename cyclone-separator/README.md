@@ -18,11 +18,12 @@ injected periodically at the air-inlet velocity.
 | Particles | Quartz/sand, ρ = 2650 kg/m³ |
 | Diameters | 0.15, 0.30, 0.60 mm |
 | Diameter mass fractions | 0.10, 0.35, 0.55 |
-| Feed | 500 particles/s, one batch every 0.005 s, maximum 250 |
+| Feed | 250 particles/s, one batch every 0.05 s (10× prior spacing), maximum 125 |
 | DEM injection velocity | (-15, 0, 0) m/s |
-| CFD time step | 5e-5 s |
-| DEM time step | 1e-6 s |
-| Coupling period | 0.001 s |
+| CFD time step | 0.0025 s (= half of save interval) |
+| DEM time step | 2e-6 s |
+| Coupling period | 0.01 s (= 4 CFD steps) |
+| Save / dump interval | 0.005 s (2500 DEM steps) |
 | Simulated time | 0.5 s |
 | MPI | 8 ranks (2 × 2 × 2) |
 
@@ -125,9 +126,10 @@ diameter, velocity, and CFD drag. Particle dumps and CFD writes both use a
 must stay equal:
 
 ```text
-CFDEM: DEM timestep × couplingInterval = 1e-6 × 1000 = 0.001 s
-DEM:   timestep × couple_every         = 1e-6 × 1000 = 0.001 s
-This equals 20 CFD steps at deltaT = 5e-5 s.
+CFDEM: DEM timestep × couplingInterval = 2e-6 × 5000 = 0.01 s
+DEM:   timestep × couple_every         = 2e-6 × 5000 = 0.01 s
+This equals 4 CFD steps at deltaT = 0.0025 s (2× writeInterval 0.005 s).
+Write/dump interval remains 0.005 s (2500 DEM steps).
 ```
 
 ## Physical limitations
