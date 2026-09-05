@@ -17,7 +17,7 @@ processors      2 2 2
 # Binary restart written by LIGGGHTS `restart` / CFDEM writeLiggghts.
 read_restart    ../DEM/post/restart/liggghts.continue
 
-neighbor        0.0003 bin
+neighbor        0.0015 bin
 neigh_modify    delay 0
 
 fix         m1 all property/global youngsModulus peratomtype 1.e7
@@ -37,13 +37,13 @@ fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 m
 # Keep injecting at the same rate. parCFDDEMcontinue.sh rewrites nparticles
 # (remaining budget) and adds start <resumeStep> - required after read_restart
 # because default start=0 is before the current DEM step.
-fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000075
-fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000150
-fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.000300
-fix         feedDist all particledistribution/discrete 32452867 3 dust 0.10 fine 0.35 sand 0.55
+fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000375
+fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000750
+fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.001500
+fix         feedDist all particledistribution/discrete 32452867 3 dust 0.05 fine 0.25 sand 0.70
 
-region      feed block 0.138 0.145 -0.090 -0.050 -0.020 0.020 units box
-fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 125 particlerate 250 insert_every 25000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
+region      feed block 0.134 0.147 -0.092 -0.048 -0.022 0.022 units box
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 25000 overlapcheck yes all_in yes vel constant -7.5 0.0 0.0 region feed
 
 fix         cfd all couple/cfd couple_every 5000 mpi
 fix         cfd2 all couple/cfd/force/implicit

@@ -16,7 +16,7 @@ units           si
 region          reg block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
 create_box      1 reg
 
-neighbor        0.0003 bin
+neighbor        0.0015 bin
 neigh_modify    delay 0
 
 # Effective quartz/sand contact properties. Young's modulus is softened from

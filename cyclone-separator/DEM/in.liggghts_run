@@ -16,7 +16,7 @@ processors      2 2 2
 region          domain block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
 create_box      1 domain
 
-neighbor        0.0003 bin
+neighbor        0.0015 bin
 neigh_modify    delay 0
 
 fix         m1 all property/global youngsModulus peratomtype 1.e7
@@ -34,19 +34,20 @@ fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
 fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclusion_list read ../DEM/body.exclude curvature_tolerant yes
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
-# Quartz-like dust/fine-sand distribution: d = 0.15, 0.30 and 0.60 mm.
-# Fractions are mass fractions. Feed is capped at 125 particles (half of prior case).
-fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000075
-fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000150
-fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.000300
-fix         feedDist all particledistribution/discrete 32452867 3 dust 0.10 fine 0.35 sand 0.55
+# Heavier quartz/sand sizes so particles separate and drift down the cone
+# instead of staying suspended in the swirl. d = 0.75, 1.5 and 3.0 mm
+# (5x prior diameters; mass ~125x for the largest class).
+# Fractions are mass fractions. Feed is capped at 250 particles.
+fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000375
+fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000750
+fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.001500
+fix         feedDist all particledistribution/discrete 32452867 3 dust 0.05 fine 0.25 sand 0.70
 
-# Thin volume immediately downstream of inlet.stl. The insertion speed exactly
-# matches the fully developed CFD inlet speed: 15 m/s in the -x direction.
+# Thin volume immediately downstream of inlet.stl. Slightly thickened so the
+# 3 mm class still fits with all_in yes. Inlet speed: 7.5 m/s in -x.
 # 25000 DEM steps = 0.05 s between insertion batches (dt = 2e-6 s).
-# 10x the previous spawn spacing (was every 0.005 s).
-region      feed block 0.138 0.145 -0.090 -0.050 -0.020 0.020 units box
-fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 125 particlerate 250 insert_every 25000 overlapcheck yes all_in yes vel constant -15.0 0.0 0.0 region feed
+region      feed block 0.134 0.147 -0.092 -0.048 -0.022 0.022 units box
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 25000 overlapcheck yes all_in yes vel constant -7.5 0.0 0.0 region feed
 
 # CFD coupling (OpenFOAM / CFDEM): 5000 * 2e-6 s = 0.01 s (= 4 CFD steps)
 fix         cfd all couple/cfd couple_every 5000 mpi

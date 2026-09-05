@@ -1,0 +1,495 @@
+
+//   run_parallel_cfdemSolverPiso_cycloneSeparator_CFDDEM   //
+
+/simulation/cyclone-separator/CFD
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5.x                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 5.x-538044ac05c4
+Exec   : cfdemSolverPiso -parallel
+Date   : Sep 05 2026
+Time   : 01:46:22
+Host   : "f05f59a04142"
+PID    : 4142
+I/O    : uncollated
+Case   : /simulation/cyclone-separator/CFD
+nProcs : 8
+Slaves : 
+7
+(
+"f05f59a04142.4143"
+"f05f59a04142.4144"
+"f05f59a04142.4145"
+"f05f59a04142.4146"
+"f05f59a04142.4147"
+"f05f59a04142.4148"
+"f05f59a04142.4149"
+)
+
+Pstream initialized with:
+    floatTransfer      : 0
+    nProcsSimpleSum    : 0
+    commsType          : nonBlocking
+    polling iterations : 0
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+
+PISO: Operating solver in PISO mode
+
+Reading field p
+
+Reading physical velocity field U
+Note: only if voidfraction at boundary is 1, U is superficial velocity!!!
+
+
+Reading momentum exchange field Ksl
+
+
+Reading voidfraction field voidfraction = (Vgas/Vparticle)
+
+
+Creating density field rho
+
+Reading particle velocity field Us
+
+Reading/calculating face flux field phi
+
+Generating interstitial face flux field phiByVoidfraction
+
+Selecting incompressible transport model Newtonian
+Selecting turbulence model type RAS
+Selecting RAS turbulence model kEpsilon
+RAS
+{
+    RASModel        kEpsilon;
+    turbulence      on;
+    printCoeffs     on;
+    Cmu             0.09;
+    C1              1.44;
+    C2              1.92;
+    C3              0;
+    sigmak          1;
+    sigmaEps        1.3;
+}
+
+No finite volume options present
+
+
+Reading g
+Selecting locateModel engine
+Selecting dataExchangeModel twoWayMPI
+Starting up LIGGGHTS for first time execution
+Executing input script '../DEM/in.liggghts_run'
+LIGGGHTS (Version LIGGGHTS-PUBLIC 3.8.0, compiled 2023-06-26-09:57:32 by root, git commit bbd23c8521fe0a4f3f5bfd0d3dc9a7dddd68d90b)
+log             ../DEM/log.liggghts
+
+atom_style      granular
+atom_modify     map array
+atom_modify     sort 0 0.0
+communicate     single vel yes
+
+boundary        f f f
+newton          off
+
+units           si
+processors      2 2 2
+
+region          domain block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
+create_box      1 domain
+Created orthogonal box = (-0.18 -0.18 -0.32) to (0.18 0.18 0.18)
+  2 by 2 by 2 MPI processor grid
+
+neighbor        0.0015 bin
+neigh_modify    delay 0
+
+fix         m1 all property/global youngsModulus peratomtype 1.e7
+fix         m2 all property/global poissonsRatio peratomtype 0.25
+fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.45
+fix         m4 all property/global coefficientFriction peratomtypepair 1 0.40
+
+pair_style  gran model hertz tangential history
+pair_coeff  * *
+
+timestep    0.000002
+fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+# Cyclone wall. inlet.stl and outlet.stl are boundary caps, not particle walls.
+fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclusion_list read ../DEM/body.exclude curvature_tolerant yes
+
+Reading STL file '../DEM/body.stl' (mesh processing step 1/3) 
+fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
+
+# Heavier quartz/sand sizes so particles separate and drift down the cone
+# instead of staying suspended in the swirl. d = 0.75, 1.5 and 3.0 mm
+# (5x prior diameters; mass ~125x for the largest class).
+# Fractions are mass fractions. Feed is capped at 250 particles.
+fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000375
+fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000750
+fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.001500
+fix         feedDist all particledistribution/discrete 32452867 3 dust 0.05 fine 0.25 sand 0.70
+Fix particledistribution/discrete (id feedDist): distribution based on mass%:
+    dust: d=7.500000e-04 (max. bounding sphere) mass%=5.000000%
+    fine: d=1.500000e-03 (max. bounding sphere) mass%=25.000000%
+    sand: d=3.000000e-03 (max. bounding sphere) mass%=70.000000%
+Fix particledistribution/discrete (id feedDist): distribution based on number%:
+    dust: d=7.500000e-04 (max. bounding sphere) number%=54.237288%
+    fine: d=1.500000e-03 (max. bounding sphere) number%=33.898305%
+    sand: d=3.000000e-03 (max. bounding sphere) number%=11.864407%
+
+# Thin volume immediately downstream of inlet.stl. Slightly thickened so the
+# 3 mm class still fits with all_in yes. Inlet speed: 7.5 m/s in -x.
+# 25000 DEM steps = 0.05 s between insertion batches (dt = 2e-6 s).
+region      feed block 0.134 0.147 -0.092 -0.048 -0.022 0.022 units box
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 25000 overlapcheck yes all_in yes vel constant -7.5 0.0 0.0 region feed
+
+# CFD coupling (OpenFOAM / CFDEM): 5000 * 2e-6 s = 0.01 s (= 4 CFD steps)
+fix         cfd all couple/cfd couple_every 5000 mpi
+couple_every as specified in LIGGGHTS is overriden by calling external program (../fix_cfd_coupling.cpp:114)
+fix         cfd2 all couple/cfd/force/implicit
+
+fix         integr all nve/sphere
+
+compute     explDrag all reduce update_on_run_end yes sum f_dragforce[1] f_dragforce[2] f_dragforce[3]
+
+variable    totalDragX equal f_cfd2[1]
+variable    totalDragY equal f_cfd2[2]
+variable    totalDragZ equal f_cfd2[3]
+variable    explicitDragX equal c_explDrag[1]
+variable    explicitDragY equal c_explDrag[2]
+variable    explicitDragZ equal c_explDrag[3]
+variable    time equal step*dt
+
+fix         extra all print 500 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
+
+compute         rke all erotate/sphere
+thermo_style    custom step atoms ke c_rke vol
+thermo          5000
+thermo_modify   lost ignore norm no
+
+# Dump every 2500 DEM steps = 0.005 s (save interval unchanged).
+dump            dmp all custom 2500 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
+
+# Binary DEM restart every write interval (needed by ./parCFDDEMcontinue.sh).
+restart         2500 ../DEM/post/restart/liggghts.restart.*
+
+run             0
+Setting up run at Sat Sep  5 01:46:26 2026
+
+Mesh bodyMesh: 129 elements have high aspect ratio (soft limit: smallest angle > 0.500000 ° required)
+WARNING: Fix mesh: Mesh contains highly skewed element, moving mesh (if used) will not parallelize well (../surface_mesh_I.h:657)
+Import and parallelization of mesh bodyMesh containing 12094 triangle(s) successful
+INFO: Resetting random generator for region feed
+INFO: Particle insertion inject: 25.000000 particles every 25000 steps - particle rate 500.000000  (mass rate 3.174872e-03)
+      250 particles (mass 1.587436e-03) within 250000 steps
+Memory usage per processor = 10.0235 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+       0        0              0              0         0.0648 
+Loop time of 0.000132208 on 8 procs for 0 steps with 0 atoms, finish time Sat Sep  5 01:46:26 2026
+
+
+Pair  time (%) = 0 (0)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 0 (0)
+Outpt time (%) = 0 (0)
+Other time (%) = 0.000132208 (100)
+
+Nlocal:    0 ave 0 max 0 min
+Histogram: 8 0 0 0 0 0 0 0 0 0
+Nghost:    0 ave 0 max 0 min
+Histogram: 8 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 8 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 0
+Neighbor list builds = 0
+Dangerous builds = 0
+--> FOAM Warning : You are using sub-time-steps (i.e. CFD TS < coupling time)! Check your settings properly.
+Selecting IOModel basicIO
+Selecting probeModel off
+Selecting voidFractionModel divided
+Selecting averagingModel dilute
+Selecting clockModel off
+start clock measurement at t >0.02
+Selecting smoothingModel off
+Selecting meshMotionModel noMeshMotion
+
+CFDEMcoupling version: cfdem-3.8.1
+, compatible to LIGGGHTS version: 3.8.0
+, compatible to OF version and build: 5.x-commit-538044ac05c4672b37c7df607dca1116fa88df88
+
+You are currently using:
+OF version: 5.x
+OF build: 5.x-538044ac05c4
+CFDEM build: 3.8.0-3-gb237264
+
+cg is set to: 1
+LIGGGHTS hosts 1 atom types.
+If BC are important, please provide volScalarFields -imp/expParticleForces-
+ignoring ddt(voidfraction)
+Selecting momCoupleModel implicitCouple
+
+implicit momentum exchange field calculate if alphaP larger than : 1
+Selecting forceModel DiFeliceDrag
+ Selecting forceSubModel ImEx
+ reading switches:
+  looking for treatForceExplicit ...  not found in dict, using default. treatForceExplicit = false
+  looking for implForceDEM ...  not found in dict, using default. implForceDEM = false
+  looking for verbose ...  not found in dict, using default. verbose = false
+  looking for interpolation ...  found in dict. interpolation = true
+  looking for scalarViscosity ...  not found in dict, using default. scalarViscosity = false
+
+Selecting forceModel gradPForce
+ Selecting forceSubModel ImEx
+ reading switches:
+  looking for treatForceExplicit ...  not found in dict, using default. treatForceExplicit = true
+  looking for verbose ...  not found in dict, using default. verbose = false
+  looking for interpolation ...  found in dict. interpolation = true
+
+Selecting forceModel viscForce
+ Selecting forceSubModel ImEx
+ reading switches:
+  looking for treatForceExplicit ...  not found in dict, using default. treatForceExplicit = true
+  looking for verbose ...  not found in dict, using default. verbose = false
+  looking for interpolation ...  found in dict. interpolation = true
+  looking for scalarViscosity ...  not found in dict, using default. scalarViscosity = false
+
+Selecting forceModel Archimedes
+ Selecting forceSubModel ImEx
+ reading switches:
+  looking for verbose ...  not found in dict, using default. verbose = false
+
+Selecting forceModel fieldStore
+Creating field stored_U
+Selecting liggghtsCommandModel runLiggghts ,provide dicts, numbered from 0 to n
+Selecting liggghtsCommandModel writeLiggghts ,provide dicts, numbered from 0 to n
+Using user defined path to write LIGGGHTS restart file: "../DEM/post/restart"
+writeLiggghts: A restart file writeName_write_restart ../DEM/post/restart/liggghts.restartCFDEM_ is written.
+solving volume averaged Navier Stokes equations of type A
+check if Archimedes lift is necessary (depends on pressure formulation)
+
+WARNING!!! Are you sure to use Archimedes lift, not necessary if gradPForce includes this effect.
+
+Starting time loop
+
+--> FOAM Warning : 
+    From function void Foam::timeControl::read(const Foam::dictionary&)
+    in file db/functionObjects/timeControl/timeControl.C at line 89
+    Reading "/simulation/cyclone-separator/CFD/system/controlDict.functions.probes" from line 56 to line 68
+    Using deprecated 'outputControl'
+    Please use 'writeControl' with 'writeInterval'
+--> FOAM Warning : 
+    From function void Foam::timeControl::read(const Foam::dictionary&)
+    in file db/functionObjects/timeControl/timeControl.C at line 89
+    Reading "/simulation/cyclone-separator/CFD/system/controlDict.functions.volFlow_inlet" from line 73 to line 83
+    Using deprecated 'outputControl'
+    Please use 'writeControl' with 'writeInterval'
+surfaceFieldValue volFlow_inlet:
+    total faces  = 49
+    total area   = 0.001885
+
+
+--> FOAM Warning : 
+    From function void Foam::timeControl::read(const Foam::dictionary&)
+    in file db/functionObjects/timeControl/timeControl.C at line 89
+    Reading "/simulation/cyclone-separator/CFD/system/controlDict.functions.volFlow_outlet" from line 88 to line 98
+    Using deprecated 'outputControl'
+    Please use 'writeControl' with 'writeInterval'
+surfaceFieldValue volFlow_outlet:
+    total faces  = 156
+    total area   = 0.00684618
+
+
+Time = 0.0025
+
+Courant Number mean: 0.000675148 max: 2.38478
+
+ Coupling...
+Starting up LIGGGHTS
+Executing command: 'run 5000    '
+run 5000    
+Setting up run at Sat Sep  5 01:46:26 2026
+
+Memory usage per processor = 10.0235 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+       0        0              0              0         0.0648 
+insertion: proc 5 at 0 %
+insertion: proc 5 at 10 %
+insertion: proc 5 at 20 %
+insertion: proc 5 at 30 %
+insertion: proc 5 at 40 %
+insertion: proc 5 at 50 %
+insertion: proc 5 at 60 %
+insertion: proc 5 at 70 %
+insertion: proc 5 at 80 %
+insertion: proc 5 at 90 %
+insertion: proc 5 at 100 %
+insertion: proc 5 at 110 %
+insertion: proc 5 at 120 %
+INFO: Particle insertion inject: inserted 25 particle templates (mass 1.580491e-04) at step 1
+ - a total of 25 particle templates (mass 1.580491e-04) inserted so far.
+0.001 0 0 0 0 0 0
+0.002 0 0 0 0 0 0
+0.003 0 0 0 0 0 0
+0.004 0 0 0 0 0 0
+0.005 0 0 0 0 0 0
+0.006 0 0 0 0 0 0
+0.007 0 0 0 0 0 0
+0.008 0 0 0 0 0 0
+0.009 0 0 0 0 0 0
+CFD Coupling established at step 5000
+0.01 0 0 0 0 0 0
+    5000       25    0.004539753  2.7161956e-05         0.0648 
+Loop time of 1.39974 on 8 procs for 5000 steps with 25 atoms, finish time Sat Sep  5 01:46:28 2026
+
+
+Pair  time (%) = 0.0053112 (0.379443)
+Neigh time (%) = 0.0687403 (4.91094)
+Comm  time (%) = 0.0192066 (1.37216)
+Outpt time (%) = 0.0185042 (1.32197)
+Other time (%) = 1.28798 (92.0155)
+
+Nlocal:    3.125 ave 24 max 0 min
+Histogram: 7 0 0 0 0 0 0 0 0 1
+Nghost:    0 ave 0 max 0 min
+Histogram: 8 0 0 0 0 0 0 0 0 0
+Neighs:    0.125 ave 1 max 0 min
+Histogram: 7 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 1
+Ave neighs/atom = 0.04
+Neighbor list builds = 137
+Dangerous builds = 0
+LIGGGHTS finished
+
+ timeStepFraction() = 0.25
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (-0.000170263 -1.7101e-08 -2.21581e-06)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 1, Final residual = 2.87717e-07, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 1, Final residual = 1.25748e-06, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 1, Final residual = 1.27727e-06, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 1, Final residual = 0.0839226, No Iterations 114
+DICPCG:  Solving for p, Initial residual = 0.0369029, Final residual = 0.00248984, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.00415125, Final residual = 0.000375711, No Iterations 20
+time step continuity errors : sum local = 9.22143e-05, global = -2.7194e-05, cumulative = -2.7194e-05
+DICPCG:  Solving for p, Initial residual = 0.00111093, Final residual = 0.000106463, No Iterations 106
+DICPCG:  Solving for p, Initial residual = 0.000496223, Final residual = 4.61156e-05, No Iterations 7
+DICPCG:  Solving for p, Initial residual = 9.55319e-05, Final residual = 8.53763e-06, No Iterations 21
+time step continuity errors : sum local = 2.12605e-06, global = -4.02102e-07, cumulative = -2.75961e-05
+DICPCG:  Solving for p, Initial residual = 4.52977e-05, Final residual = 4.36948e-06, No Iterations 51
+DICPCG:  Solving for p, Initial residual = 1.80939e-05, Final residual = 1.76723e-06, No Iterations 100
+DICPCG:  Solving for p, Initial residual = 1.27664e-05, Final residual = 9.93841e-07, No Iterations 6
+time step continuity errors : sum local = 2.47555e-07, global = -1.30485e-08, cumulative = -2.76091e-05
+DILUPBiCGStab:  Solving for epsilon, Initial residual = 0.0188244, Final residual = 7.68942e-05, No Iterations 1
+DILUPBiCGStab:  Solving for k, Initial residual = 1, Final residual = 0.00327893, No Iterations 1
+ExecutionTime = 5.67 s  ClockTime = 5 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0138429
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.013843
+
+Time = 0.005
+
+Courant Number mean: 0.104124 max: 7.9373
+
+ timeStepFraction() = 0.5
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (-5.49382e-06 -0.000228196 5.31459e-05)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.164964, Final residual = 0.00722552, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.214412, Final residual = 0.00498558, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.232377, Final residual = 0.00405462, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.0435108, Final residual = 0.00430165, No Iterations 107
+DICPCG:  Solving for p, Initial residual = 0.185641, Final residual = 0.0172697, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.0295495, Final residual = 0.0026396, No Iterations 18
+time step continuity errors : sum local = 9.2485e-05, global = 1.88781e-05, cumulative = -8.73098e-06
+DICPCG:  Solving for p, Initial residual = 0.0950515, Final residual = 0.00913535, No Iterations 57
+DICPCG:  Solving for p, Initial residual = 0.060382, Final residual = 0.00525442, No Iterations 94
+DICPCG:  Solving for p, Initial residual = 0.0828723, Final residual = 0.00777582, No Iterations 6
+time step continuity errors : sum local = 8.16516e-05, global = -1.80532e-06, cumulative = -1.05363e-05
+DICPCG:  Solving for p, Initial residual = 0.0829614, Final residual = 0.00801982, No Iterations 18
+DICPCG:  Solving for p, Initial residual = 0.0204472, Final residual = 0.00200655, No Iterations 99
+DICPCG:  Solving for p, Initial residual = 0.0136823, Final residual = 8.98168e-07, No Iterations 163
+time step continuity errors : sum local = 7.14835e-09, global = -7.0935e-11, cumulative = -1.05364e-05
+DILUPBiCGStab:  Solving for epsilon, Initial residual = 0.0234345, Final residual = 0.000337155, No Iterations 1
+DILUPBiCGStab:  Solving for k, Initial residual = 0.645654, Final residual = 0.00944191, No Iterations 1
+ExecutionTime = 6.13 s  ClockTime = 6 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0138429
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.0138432
+
+Time = 0.0075
+
+Courant Number mean: 0.1042 max: 7.27462
+
+ timeStepFraction() = 0.75
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (-0.000423355 -0.000373882 9.2641e-05)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.019239, Final residual = 0.000572542, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0442079, Final residual = 0.00147296, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.012521, Final residual = 0.000403995, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.260249, Final residual = 0.023991, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.0529191, Final residual = 0.00509128, No Iterations 53
+DICPCG:  Solving for p, Initial residual = 0.0238792, Final residual = 0.00212416, No Iterations 101
+time step continuity errors : sum local = 1.39342e-05, global = 5.20241e-07, cumulative = -1.00161e-05
+DICPCG:  Solving for p, Initial residual = 0.0396502, Final residual = 0.00391531, No Iterations 6
+DICPCG:  Solving for p, Initial residual = 0.00933591, Final residual = 0.000844619, No Iterations 58
+DICPCG:  Solving for p, Initial residual = 0.00384806, Final residual = 0.000348764, No Iterations 102
+time step continuity errors : sum local = 2.8107e-06, global = 2.96363e-08, cumulative = -9.9865e-06
+DICPCG:  Solving for p, Initial residual = 0.00775387, Final residual = 0.00069865, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.00139599, Final residual = 0.000136471, No Iterations 11
+DICPCG:  Solving for p, Initial residual = 0.000461382, Final residual = 9.43529e-07, No Iterations 130
+time step continuity errors : sum local = 7.30328e-09, global = 1.67695e-11, cumulative = -9.98648e-06
+DILUPBiCGStab:  Solving for epsilon, Initial residual = 0.0253921, Final residual = 0.000360916, No Iterations 1
+DILUPBiCGStab:  Solving for k, Initial residual = 0.34705, Final residual = 0.00467409, No Iterations 1
+ExecutionTime = 6.41 s  ClockTime = 6 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0138429
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.0138435
+
+Time = 0.01
+
+Courant Number mean: 0.104033 max: 6.86677
+
+ timeStepFraction() = 1
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (-0.00112492 -0.000505625 0.000110333)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0140406, Final residual = 0.000369591, No Iterations 1
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.0333039, Final residual = 0.000987689, No Iterations 1
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.00975881, Final residual = 0.000231715, No Iterations 1
+DICPCG:  Solving for p, Initial residual = 0.109391, Final residual = 0.00880627, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.0191893, Final residual = 0.00178286, No Iterations 17
+DICPCG:  Solving for p, Initial residual = 0.00568986, Final residual = 0.00055524, No Iterations 21
+time step continuity errors : sum local = 4.12195e-06, global = 1.06583e-06, cumulative = -8.92065e-06
+DICPCG:  Solving for p, Initial residual = 0.017506, Final residual = 0.00168109, No Iterations 5
+DICPCG:  Solving for p, Initial residual = 0.00421109, Final residual = 0.000384187, No Iterations 56

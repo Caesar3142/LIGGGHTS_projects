@@ -11,20 +11,20 @@ injected periodically at the air-inlet velocity.
 |---|---|
 | Coupling | `cfdemSolverPiso` + LIGGGHTS, two-way MPI |
 | Cyclone geometry | `body.stl`, x/y ±0.161 m, z -0.308 to 0.172 m |
-| Inlet | 15 m/s in -x |
+| Inlet | 7.5 m/s in -x |
 | Outlet | Pressure outlet in +z |
 | Fluid | Air: ρ = 1.2 kg/m³, ν = 1.5e-5 m²/s |
 | Turbulence | RAS k-epsilon, 5% inlet intensity |
 | Particles | Quartz/sand, ρ = 2650 kg/m³ |
-| Diameters | 0.15, 0.30, 0.60 mm |
-| Diameter mass fractions | 0.10, 0.35, 0.55 |
-| Feed | 250 particles/s, one batch every 0.05 s (10× prior spacing), maximum 125 |
-| DEM injection velocity | (-15, 0, 0) m/s |
+| Diameters | 0.75, 1.5, 3.0 mm (mass fractions 0.05 / 0.25 / 0.70) |
+| Diameter mass fractions | 0.05 / 0.25 / 0.70 |
+| Feed | 500 particles/s, one batch every 0.05 s, maximum 250 |
+| DEM injection velocity | (-7.5, 0, 0) m/s |
 | CFD time step | 0.0025 s (= half of save interval) |
 | DEM time step | 2e-6 s |
 | Coupling period | 0.01 s (= 4 CFD steps) |
 | Save / dump interval | 0.005 s (2500 DEM steps) |
-| Simulated time | 0.5 s |
+| Simulated time | 10 s |
 | MPI | 8 ranks (2 × 2 × 2) |
 
 The softened particle Young's modulus (1e7 Pa) is a computational setting,
