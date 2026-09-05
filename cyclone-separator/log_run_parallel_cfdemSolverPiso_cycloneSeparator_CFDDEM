@@ -493,3 +493,72 @@ DICPCG:  Solving for p, Initial residual = 0.00568986, Final residual = 0.000555
 time step continuity errors : sum local = 4.12195e-06, global = 1.06583e-06, cumulative = -8.92065e-06
 DICPCG:  Solving for p, Initial residual = 0.017506, Final residual = 0.00168109, No Iterations 5
 DICPCG:  Solving for p, Initial residual = 0.00421109, Final residual = 0.000384187, No Iterations 56
+DICPCG:  Solving for p, Initial residual = 0.0016525, Final residual = 0.000141863, No Iterations 91
+time step continuity errors : sum local = 1.05052e-06, global = 3.6122e-09, cumulative = -8.91704e-06
+DICPCG:  Solving for p, Initial residual = 0.00386539, Final residual = 0.000296764, No Iterations 3
+DICPCG:  Solving for p, Initial residual = 0.000691616, Final residual = 6.83448e-05, No Iterations 54
+DICPCG:  Solving for p, Initial residual = 0.000360438, Final residual = 9.13434e-07, No Iterations 129
+time step continuity errors : sum local = 6.63552e-09, global = -5.50495e-11, cumulative = -8.91709e-06
+DILUPBiCGStab:  Solving for epsilon, Initial residual = 0.0287538, Final residual = 0.00034076, No Iterations 1
+DILUPBiCGStab:  Solving for k, Initial residual = 0.244231, Final residual = 0.00274318, No Iterations 1
+ExecutionTime = 6.92 s  ClockTime = 7 s
+
+surfaceFieldValue volFlow_inlet write:
+    sum(inlet) of phi = -0.0138429
+
+surfaceFieldValue volFlow_outlet write:
+    sum(outlet) of phi = 0.0138438
+
+Time = 0.0125
+
+Courant Number mean: 0.104442 max: 6.54973
+
+ Coupling...
+Starting up LIGGGHTS
+Executing command: 'run 5000    '
+run 5000    
+Setting up run at Sat Sep  5 01:46:30 2026
+
+Memory usage per processor = 10.0323 Mbytes
+    Step    Atoms         KinEng            rke         Volume 
+    5000       25    0.004539753  2.7161956e-05         0.0648 
+0.011 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.012 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.013 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.014 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.015 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.016 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.017 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.018 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+0.019 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+CFD Coupling established at step 10000
+0.02 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06 0.000681053816982204 6.84040532452334e-08 9.37290481216867e-06
+   10000       25   0.0038412781  0.00018928422         0.0648 
+Loop time of 1.20307 on 8 procs for 5000 steps with 25 atoms, finish time Sat Sep  5 01:46:31 2026
+
+
+Pair  time (%) = 0.00370066 (0.307601)
+Neigh time (%) = 0.0657691 (5.46677)
+Comm  time (%) = 0.0222659 (1.85075)
+Outpt time (%) = 0.0324838 (2.70007)
+Other time (%) = 1.07885 (89.6748)
+
+Nlocal:    3.125 ave 21 max 0 min
+Histogram: 6 1 0 0 0 0 0 0 0 1
+Nghost:    0.25 ave 2 max 0 min
+Histogram: 7 0 0 0 0 0 0 0 0 1
+Neighs:    0.125 ave 1 max 0 min
+Histogram: 7 0 0 0 0 0 0 0 0 1
+
+Total # of neighbors = 1
+Ave neighs/atom = 0.04
+Neighbor list builds = 134
+Dangerous builds = 0
+LIGGGHTS finished
+
+ timeStepFraction() = 0.25
+
+Solver level total Eulerian momentum exchange:
+  TotalForceImp:  (-0.000363838 -0.000382888 0.000128452)
+  Warning, these values are based on latest Ksl and Us but prev. iteration U!
+
