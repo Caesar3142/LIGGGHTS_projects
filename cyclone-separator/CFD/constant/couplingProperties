@@ -28,9 +28,9 @@ FoamFile
 
 modelType "A"; // A or B
 
-// Number of DEM steps between exchanges: 5000 x 2e-6 s = 0.01 s
+// Number of DEM steps between exchanges: 10000 x 1e-6 s = 0.01 s
 // (= 4 CFD steps at deltaT 0.0025; must be >= CFD deltaT).
-couplingInterval 5000;
+couplingInterval 10000;
 
 voidFractionModel divided;//centre;//
 

@@ -13,44 +13,46 @@ newton          off
 units           si
 processors      2 2 2
 
-region          domain block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
+region          domain block -0.18 0.18 -0.18 0.18 -0.42 0.18 units box
 create_box      1 domain
 
-neighbor        0.0015 bin
+neighbor        0.003 bin
 neigh_modify    delay 0
 
-fix         m1 all property/global youngsModulus peratomtype 1.e7
+# Softened but stiffer contacts to limit wall overlap (was 1e7; slow
+# particles still penetrate visibly when Hertz stiffness is too low).
+fix         m1 all property/global youngsModulus peratomtype 5.e7
 fix         m2 all property/global poissonsRatio peratomtype 0.25
-fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.45
+fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.35
 fix         m4 all property/global coefficientFriction peratomtypepair 1 0.40
 
 pair_style  gran model hertz tangential history
 pair_coeff  * *
 
-timestep    0.000002
+# Smaller DEM dt required for the stiffer Young modulus (Rayleigh limit).
+timestep    0.000001
 fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
 
 # Cyclone wall. inlet.stl and outlet.stl are boundary caps, not particle walls.
-fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 element_exclusion_list read ../DEM/body.exclude curvature_tolerant yes
+# DEM/body.stl is synced+cleaned from CFD by Allrun.sh (ASCII, LIGGGHTS-safe).
+fix         bodyMesh all mesh/surface file ../DEM/body.stl type 1 curvature_tolerant yes
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
-# Heavier quartz/sand sizes so particles separate and drift down the cone
-# instead of staying suspended in the swirl. d = 0.75, 1.5 and 3.0 mm
-# (5x prior diameters; mass ~125x for the largest class).
+# Heavier quartz/sand sizes so particles separate and drift down the cone.
+# d = 1.5, 3.0 and 6.0 mm (2x prior diameters).
 # Fractions are mass fractions. Feed is capped at 250 particles.
-fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000375
-fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.000750
-fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.001500
+fix         dust all particletemplate/sphere 15485863 atom_type 1 density constant 2650 radius constant 0.000750
+fix         fine all particletemplate/sphere 15485867 atom_type 1 density constant 2650 radius constant 0.001500
+fix         sand all particletemplate/sphere 32452843 atom_type 1 density constant 2650 radius constant 0.003000
 fix         feedDist all particledistribution/discrete 32452867 3 dust 0.05 fine 0.25 sand 0.70
 
-# Thin volume immediately downstream of inlet.stl. Slightly thickened so the
-# 3 mm class still fits with all_in yes. Inlet speed: 7.5 m/s in -x.
-# 25000 DEM steps = 0.05 s between insertion batches (dt = 2e-6 s).
-region      feed block 0.134 0.147 -0.092 -0.048 -0.022 0.022 units box
-fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 25000 overlapcheck yes all_in yes vel constant -7.5 0.0 0.0 region feed
+# Feed volume downstream of inlet.stl, sized for the 6 mm class with all_in.
+# Inlet speed: 7.5 m/s in -x. 50000 DEM steps = 0.05 s between batches.
+region      feed block 0.130 0.148 -0.095 -0.045 -0.025 0.025 units box
+fix         inject all insert/rate/region seed 49979687 distributiontemplate feedDist nparticles 250 particlerate 500 insert_every 50000 overlapcheck yes all_in yes vel constant -7.5 0.0 0.0 region feed
 
-# CFD coupling (OpenFOAM / CFDEM): 5000 * 2e-6 s = 0.01 s (= 4 CFD steps)
-fix         cfd all couple/cfd couple_every 5000 mpi
+# CFD coupling (OpenFOAM / CFDEM): 10000 * 1e-6 s = 0.01 s (= 4 CFD steps)
+fix         cfd all couple/cfd couple_every 10000 mpi
 fix         cfd2 all couple/cfd/force/implicit
 
 fix         integr all nve/sphere
@@ -65,17 +67,17 @@ variable    explicitDragY equal c_explDrag[2]
 variable    explicitDragZ equal c_explDrag[3]
 variable    time equal step*dt
 
-fix         extra all print 500 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
+fix         extra all print 1000 "${time} ${explicitDragX} ${explicitDragY} ${explicitDragZ} ${totalDragX} ${totalDragY} ${totalDragZ}" file ../DEM/post/forces.txt title "# time expDrag(X Y Z) totDrag(X Y Z)"
 
 compute         rke all erotate/sphere
 thermo_style    custom step atoms ke c_rke vol
-thermo          5000
+thermo          10000
 thermo_modify   lost ignore norm no
 
-# Dump every 2500 DEM steps = 0.005 s (save interval unchanged).
-dump            dmp all custom 2500 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
+# Dump every 5000 DEM steps = 0.005 s (save interval unchanged).
+dump            dmp all custom 5000 ../DEM/post/dump*.liggghts_run id type x y z vx vy vz fx fy fz f_dragforce[1] f_dragforce[2] f_dragforce[3] radius
 
 # Binary DEM restart every write interval (needed by ./parCFDDEMcontinue.sh).
-restart         2500 ../DEM/post/restart/liggghts.restart.*
+restart         5000 ../DEM/post/restart/liggghts.restart.*
 
 run             0

@@ -12,10 +12,14 @@ post/
 *.dump
 frame_*.csv
 
-# Run logs
+# Run logs (CFDEM uses log_* without a .log suffix)
 log.liggghts
+log_*
 screen.log
 *.log
+**/log.liggghts
+**/DEM/log.*
+**/CFD/log.*
 
 # macOS
 .DS_Store

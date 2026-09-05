@@ -10,25 +10,26 @@ injected periodically at the air-inlet velocity.
 | Item | Setting |
 |---|---|
 | Coupling | `cfdemSolverPiso` + LIGGGHTS, two-way MPI |
-| Cyclone geometry | `body.stl`, x/y ±0.161 m, z -0.308 to 0.172 m |
+| Cyclone geometry | `body.stl`, x/y ±0.161 m, z -0.402 to 0.172 m |
 | Inlet | 7.5 m/s in -x |
 | Outlet | Pressure outlet in +z |
 | Fluid | Air: ρ = 1.2 kg/m³, ν = 1.5e-5 m²/s |
 | Turbulence | RAS k-epsilon, 5% inlet intensity |
 | Particles | Quartz/sand, ρ = 2650 kg/m³ |
-| Diameters | 0.75, 1.5, 3.0 mm (mass fractions 0.05 / 0.25 / 0.70) |
+| Diameters | 1.5, 3.0, 6.0 mm (mass fractions 0.05 / 0.25 / 0.70) |
 | Diameter mass fractions | 0.05 / 0.25 / 0.70 |
 | Feed | 500 particles/s, one batch every 0.05 s, maximum 250 |
 | DEM injection velocity | (-7.5, 0, 0) m/s |
 | CFD time step | 0.0025 s (= half of save interval) |
-| DEM time step | 2e-6 s |
+| DEM time step | 1e-6 s |
 | Coupling period | 0.01 s (= 4 CFD steps) |
-| Save / dump interval | 0.005 s (2500 DEM steps) |
+| Save / dump interval | 0.005 s (5000 DEM steps) |
 | Simulated time | 10 s |
 | MPI | 8 ranks (2 × 2 × 2) |
 
-The softened particle Young's modulus (1e7 Pa) is a computational setting,
-not the physical modulus of quartz. The feed is intentionally small enough
+The softened particle Young's modulus (5e7 Pa) is a computational setting,
+not the physical modulus of quartz. Higher values reduce wall overlap but
+need a smaller DEM timestep. The feed is intentionally small enough
 for a demonstration case; calibrate the particle rate and distribution from
 the measured dust loading before using collection-efficiency results.
 
@@ -99,7 +100,12 @@ For an optional DEM-only check that LIGGGHTS can read `body.stl`:
 
 ```bash
 ./Allpostprocess.sh
+# optional: RECONSTRUCT_JOBS=8 ./Allpostprocess.sh
 ```
+
+`Allpostprocess.sh` runs several `reconstructPar -noLagrangian` jobs in
+parallel (time ranges split across `RECONSTRUCT_JOBS`, default 8), then
+converts DEM dumps.
 
 Open:
 
@@ -126,10 +132,10 @@ diameter, velocity, and CFD drag. Particle dumps and CFD writes both use a
 must stay equal:
 
 ```text
-CFDEM: DEM timestep × couplingInterval = 2e-6 × 5000 = 0.01 s
-DEM:   timestep × couple_every         = 2e-6 × 5000 = 0.01 s
+CFDEM: DEM timestep × couplingInterval = 1e-6 × 10000 = 0.01 s
+DEM:   timestep × couple_every         = 1e-6 × 10000 = 0.01 s
 This equals 4 CFD steps at deltaT = 0.0025 s (2× writeInterval 0.005 s).
-Write/dump interval remains 0.005 s (2500 DEM steps).
+Write/dump interval remains 0.005 s (5000 DEM steps).
 ```
 
 ## Physical limitations

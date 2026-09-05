@@ -15,33 +15,26 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-4
+3
 (
-    background
-    {
-        type            wall;
-        inGroups        1(wall);
-        nFaces          780;
-        startFace       148607;
-    }
     body
     {
         type            wall;
         inGroups        1(wall);
-        nFaces          17240;
-        startFace       149387;
+        nFaces          20162;
+        startFace       175717;
     }
     inlet
     {
         type            patch;
-        nFaces          49;
-        startFace       166627;
+        nFaces          45;
+        startFace       195879;
     }
     outlet
     {
         type            patch;
         nFaces          156;
-        startFace       166676;
+        startFace       195924;
     }
 )
 

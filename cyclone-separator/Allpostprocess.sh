@@ -27,7 +27,7 @@ fi
 latestProc="$(ls -1 "$cfdPath/processor0" | awk '/^[0-9]/ && $0 != "0" {print}' | sort -n | tail -1)"
 latestDumpStep="$(ls -1 "$demPath/post"/dump*.liggghts_run | sed 's|.*/dump||;s|\.liggghts_run||' | sort -n | tail -1)"
 latestDumpTime="$(python3 - <<PY
-print(round(int("$latestDumpStep") * 2e-6, 6))
+print(round(int("$latestDumpStep") * 1e-6, 6))
 PY
 )"
 
@@ -53,15 +53,58 @@ echo "Reconstructing CFD fields..."
 (
     cd "$cfdPath"
     # CFDEM particleCloud data is incompatible with plain reconstructPar.
-    # Re-run is safe: already-reconstructed times are skipped/overwritten.
-    reconstructPar -noLagrangian
+    # OpenFOAM-5 reconstructPar is serial; speed it up by splitting times
+    # across several independent reconstructPar processes.
+    nJobs="${RECONSTRUCT_JOBS:-${NR_PROCS:-8}}"
+    mapfile -t times < <(
+        ls -1 processor0 |
+        awk '/^[0-9]+([.][0-9]+)?$/ && $0 != "0" {print}' |
+        sort -n
+    )
+    nTimes="${#times[@]}"
+    if [ "$nTimes" -eq 0 ]; then
+        echo "ERROR: no result times found under processor0/"
+        exit 1
+    fi
+    if [ "$nJobs" -gt "$nTimes" ]; then
+        nJobs="$nTimes"
+    fi
+    echo "  $nTimes times -> $nJobs parallel reconstructPar jobs (-noLagrangian -newTimes)"
+
+    pids=()
+    fails=0
+    for ((i = 0; i < nJobs; i++)); do
+        start=$((i * nTimes / nJobs))
+        end=$(((i + 1) * nTimes / nJobs))
+        if [ "$start" -ge "$end" ]; then
+            continue
+        fi
+        t0="${times[$start]}"
+        t1="${times[$((end - 1))]}"
+        log="../log_reconstructPar_${i}"
+        (
+            echo "  job $i: times ${t0}:${t1} (${start}..$((end - 1)))"
+            reconstructPar -noLagrangian -newTimes -time "${t0}:${t1}" >"$log" 2>&1
+        ) &
+        pids+=("$!")
+    done
+
+    for pid in "${pids[@]}"; do
+        if ! wait "$pid"; then
+            fails=$((fails + 1))
+        fi
+    done
+    if [ "$fails" -ne 0 ]; then
+        echo "ERROR: $fails reconstructPar job(s) failed; see CFD/../log_reconstructPar_*"
+        exit 1
+    fi
     touch cycloneSeparator.foam
 )
 
 echo "Converting DEM dumps for ParaView (rewrites particles.pvd)..."
 # step0=0 so physical time = DEM_step * dt matches CFD absolute time
 # after cold start and after ./parCFDDEMcontinue.sh.
-"$demPath/dumpsToParaView" --step0 0 --dt 2e-6 "$@"
+"$demPath/dumpsToParaView" --step0 0 --dt 1e-6 "$@"
 
 echo "Post-processing complete:"
 echo "  CFD: $cfdPath/cycloneSeparator.foam"

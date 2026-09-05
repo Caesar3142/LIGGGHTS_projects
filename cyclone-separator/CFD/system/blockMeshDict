@@ -13,17 +13,17 @@ FoamFile
     object      blockMeshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-// Background mesh for the cyclone STL.
+// Background mesh for the cyclone STL (body ~ x/y +/-0.161, z -0.402 to 0.172).
 // snappyHexMesh keeps only the fluid region selected by locationInMesh.
 
 convertToMeters 1;
 
 vertices
 (
-    (-0.18 -0.18 -0.32)
-    ( 0.18 -0.18 -0.32)
-    ( 0.18  0.18 -0.32)
-    (-0.18  0.18 -0.32)
+    (-0.18 -0.18 -0.42)
+    ( 0.18 -0.18 -0.42)
+    ( 0.18  0.18 -0.42)
+    (-0.18  0.18 -0.42)
     (-0.18 -0.18  0.18)
     ( 0.18 -0.18  0.18)
     ( 0.18  0.18  0.18)
@@ -32,9 +32,9 @@ vertices
 
 blocks
 (
-    // Base cell size is approximately 13 mm; surface refinement produces
-    // approximately 6–7 mm cells at the cyclone, inlet and outlet (~1/4 cells).
-    hex (0 1 2 3 4 5 6 7) (28 28 40) simpleGrading (1 1 1)
+    // Base cell size remains ~13 mm; surface refinement ~6–7 mm.
+    // Z count raised for the deeper cone (domain height 0.60 m).
+    hex (0 1 2 3 4 5 6 7) (28 28 46) simpleGrading (1 1 1)
 );
 
 edges

@@ -12,28 +12,28 @@ newton          off
 
 units           si
 
-# Domain encloses body.stl (x/y +/-0.161, z -0.308 to 0.172 m).
-region          reg block -0.18 0.18 -0.18 0.18 -0.32 0.18 units box
+# Domain encloses body.stl (x/y +/-0.161, z -0.402 to 0.172 m).
+region          reg block -0.18 0.18 -0.18 0.18 -0.42 0.18 units box
 create_box      1 reg
 
-neighbor        0.0015 bin
+neighbor        0.003 bin
 neigh_modify    delay 0
 
 # Effective quartz/sand contact properties. Young's modulus is softened from
-# real quartz to keep the demonstration time step practical.
-fix         m1 all property/global youngsModulus peratomtype 1.e7
+# real quartz but kept high enough to limit visible wall overlap.
+fix         m1 all property/global youngsModulus peratomtype 5.e7
 fix         m2 all property/global poissonsRatio peratomtype 0.25
-fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.45
+fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.35
 fix         m4 all property/global coefficientFriction peratomtypepair 1 0.40
 
 pair_style  gran model hertz tangential history
 pair_coeff  * *
 
-timestep    0.000002
+timestep    0.000001
 fix         gravi all gravity 9.81 vector 0.0 0.0 -1.0
 
 # body.stl includes the cyclone shell, inlet duct and collection bin walls.
-fix         bodyMesh all mesh/surface file body.stl type 1 element_exclusion_list read body.exclude curvature_tolerant yes
+fix         bodyMesh all mesh/surface file body.stl type 1 curvature_tolerant yes
 fix         walls all wall/gran model hertz tangential history mesh n_meshes 1 meshes bodyMesh
 
 thermo_style    custom step atoms ke vol

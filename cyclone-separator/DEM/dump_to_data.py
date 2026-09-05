@@ -21,7 +21,7 @@ density = 2650.0
 with open(data, "w") as f:
     f.write("LIGGGHTS data file\n\n")
     f.write("%d atoms\n1 atom types\n\n" % len(atoms))
-    f.write("-0.18 0.18 xlo xhi\n-0.18 0.18 ylo yhi\n-0.32 0.18 zlo zhi\n\n")
+    f.write("-0.18 0.18 xlo xhi\n-0.18 0.18 ylo yhi\n-0.42 0.18 zlo zhi\n\n")
     f.write("Atoms\n\n")
     for a in atoms:
         f.write("%s %s %s %s %s %s %s\n" % (

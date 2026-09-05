@@ -6,7 +6,7 @@ DEM dumps use LIGGGHTS steps (50000, 55000, ...). CFD uses seconds
 
   t_phys = (DEM_step - step0) * dt
 
-Defaults (this case): dt=2e-6, step0=first dump step.
+Defaults (this case): dt=1e-6, step0=first dump step.
 
 IMPORTANT for ParaView time sync:
   Open DEM/post/particles.pvd   <-- not the CSV files
@@ -256,7 +256,7 @@ def time_tag(t):
 def main():
     ap = argparse.ArgumentParser(description="LIGGGHTS dumps -> ParaView VTK/PVD")
     ap.add_argument("--dir", type=Path, default=None)
-    ap.add_argument("--dt", type=float, default=2.0e-6)
+    ap.add_argument("--dt", type=float, default=1.0e-6)
     ap.add_argument("--step0", type=int, default=None)
     ap.add_argument("--csv", action="store_true", help="Also write CSV files")
     ap.add_argument("--keep-old", action="store_true")
