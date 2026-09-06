@@ -1,0 +1,42 @@
+# LIGGGHTS with granular bonds (flexible fibers).
+# Required for bending fibers; stock liggghts:local is rigid-only multisphere.
+#
+# Build (once, ~5–15 min):
+#   docker build --platform linux/amd64 -f Dockerfile.flexible -t liggghts-flex:local .
+#
+# Run:
+#   docker run -it --rm --platform linux/amd64 \
+#     -v ~/Documents_Local/GitHub/LIGGGHTS_projects:/simulation \
+#     liggghts-flex:local
+
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    g++ \
+    make \
+    git \
+    ca-certificates \
+    libopenmpi-dev \
+    openmpi-bin \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+RUN git clone --depth 1 https://github.com/schrummy14/LIGGGHTS_Flexible_Fibers.git \
+    && cd LIGGGHTS_Flexible_Fibers/src \
+    && cp MAKE/Makefile.user_default MAKE/Makefile.user \
+    && sed -i \
+         -e 's/^USE_VTK = "ON"/USE_VTK = "OFF"/' \
+         -e 's/^USE_SUPERQUADRICS = "ON"/USE_SUPERQUADRICS = "OFF"/' \
+         -e 's/^USE_JPG = "ON"/USE_JPG = "OFF"/' \
+         MAKE/Makefile.user \
+    && make -j"$(nproc)" auto \
+    && ln -sf /opt/LIGGGHTS_Flexible_Fibers/src/lmp_auto /usr/local/bin/liggghts \
+    && ln -sf /opt/LIGGGHTS_Flexible_Fibers/src/lmp_auto /usr/local/bin/liggghts_bonds \
+    && ln -sf /opt/LIGGGHTS_Flexible_Fibers/src/lmp_auto /usr/local/bin/lmp_auto
+
+WORKDIR /simulation
+CMD ["/bin/bash"]

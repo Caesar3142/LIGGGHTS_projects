@@ -1,6 +1,6 @@
-# Rigid long fiber as a chain of overlapping spheres (x y z r)
-# Sphere diameter 10 mm, center spacing 7.5 mm → total length ≈ 152.5 mm
-# Aspect ratio L/D ≈ 15
+# Rigid overlapping-sphere clump (legacy rigid-multisphere runs).
+# Flexible case embeds bonded abutting spheres in the input script instead.
+# Sphere diameter 10 mm, center spacing 7.5 mm (kept for reference only).
 0.0000 0.0 0.0 0.005
 0.0075 0.0 0.0 0.005
 0.0150 0.0 0.0 0.005
