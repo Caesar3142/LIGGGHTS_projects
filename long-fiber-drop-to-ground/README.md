@@ -12,16 +12,16 @@ Use image **`liggghts:local`** for this case. For CFD–DEM (e.g. `fluidized-bed
 | Ground mesh | `1x1m-ground.stl` (ASCII, 1×1 m, tilted ~12°, high at x=0 → low at x=1) |
 | Particles | Rigid multisphere fibers: **~152 mm × 10 mm** (20 overlapping spheres) |
 | Fiber template | `data/fiber.multisphere` |
-| Density | 1200 kg/m³ |
-| Young’s modulus / Poisson | 5×10⁸ Pa / 0.30 |
-| Restitution / friction | 0.3 / 0.4 |
+| Density | 1100 kg/m³ (rubber-like) |
+| Young’s modulus / Poisson | 5×10⁶ Pa / 0.49 |
+| Restitution / friction | 0.80 / 0.70 (bouncy, grippy) |
 | Contact model | Hertz + tangential history |
 | Insertion | `insert/pack` (~40 fibers above the high end of the ramp) |
 | Integrator | `fix multisphere` (rigid body, not `nve/sphere`) |
 | Gravity | 9.81 m/s² straight down |
-| Timestep | 5×10⁻⁶ s |
-| Dump interval | 10000 steps (0.05 s) → `post/dump*.liggghts_run` |
-| Run length | 600 000 steps (~3 s physical time) |
+| Timestep | 1×10⁻⁶ s (fine enough to resolve soft bounce) |
+| Dump interval | 1000 steps (0.001 s) → smooth ParaView bounce |
+| Run length | 3 000 000 steps (~3 s physical time) |
 | Outputs | `post/dump*.liggghts_run`, `post/ground_mesh_*.stl`, logs |
 
 Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, fibers have settled. Increase `run` if they are still bouncing.
@@ -31,11 +31,13 @@ Watch kinetic energy (`ke`) in the thermo output. When it stays near zero, fiber
 ```
 long-fiber-drop-to-ground/
 ├── README.md
+├── Allrun.sh                            # prepare + run + post-process
+├── Allclean.sh                          # wipe post/ dumps & logs
+├── Allpostprocess.sh                    # dump*.liggghts_run → particles.pvd
 ├── simple_dropping_to_ground.liggghts   # input script
 ├── data/fiber.multisphere              # sphere-chain geometry for one fiber
 ├── 1x1m-ground.stl                      # ground mesh used by the run (ASCII)
-├── dumpsToParaView                      # dump*.liggghts_run → particles.pvd
-├── Allpostprocess.sh                    # thin wrapper (same idea as cyclone DEM post)
+├── dumpsToParaView                      # DEM dump converter
 ├── log.liggghts / screen.log            # created when you run
 └── post/                                # dumps & ParaView outputs
 ```
@@ -62,16 +64,28 @@ docker run -it --rm --platform linux/amd64 \
   liggghts:local
 ```
 
-### 2. Run the case (inside the container)
+### 2. Allrun (inside the container)
 
 ```bash
 cd /simulation/long-fiber-drop-to-ground
-mkdir -p post
-rm -rf post/dump*.liggghts_run post/particles_* post/particles.pvd post/ground_mesh_*.stl
-liggghts -in simple_dropping_to_ground.liggghts -log log.liggghts | tee screen.log
+./Allrun.sh
 ```
 
-Dumps appear as `post/dump0.liggghts_run`, `post/dump10000.liggghts_run`, … (same naming as `cyclone-separator/DEM`).
+This does:
+
+1. **Prepare** — `./Allclean.sh` (clears old `post/` dumps + logs, recreates `post/`)
+2. **Run** — `liggghts -in simple_dropping_to_ground.liggghts`
+3. **Post-process** — `./Allpostprocess.sh` → `post/particles.pvd`
+
+Dumps appear as `post/dump0.liggghts_run`, `post/dump1000.liggghts_run`, … (same naming as `cyclone-separator/DEM`).
+
+Manual pieces if needed:
+
+```bash
+./Allclean.sh
+liggghts -in simple_dropping_to_ground.liggghts -log log.liggghts | tee screen.log
+./Allpostprocess.sh
+```
 
 ### 3. Exit the container
 
@@ -79,15 +93,14 @@ Dumps appear as `post/dump0.liggghts_run`, `post/dump10000.liggghts_run`, … (s
 exit
 ```
 
-## Post-process (Mac — cyclone DEM strategy)
+## Post-process only (Mac or container)
 
-Same pattern as `cyclone-separator` with DEM dumps only:
+If dumps already exist:
 
 ```bash
 cd ~/Documents_Local/GitHub/LIGGGHTS_projects/long-fiber-drop-to-ground
 ./Allpostprocess.sh
-# or directly:
-# ./dumpsToParaView --step0 0 --dt 5e-6
+# or: ./dumpsToParaView --step0 0 --dt 1e-6
 ```
 
 This writes:
@@ -110,8 +123,8 @@ Do **not** open the raw dump files or CSV series for time playback — use **`pa
 |------|------|
 | Longer / shorter fibers | Edit `data/fiber.multisphere` and match `nspheres` in the input |
 | More / fewer fibers | Change `particles_in_region` |
-| Softer bounce | Lower `restitution` |
-| Dump more often | Lower the dump interval (currently `10000`) |
+| Less / more bounce | Lower / raise `restitution` (default 0.80) |
+| Dump more often | Lower the dump interval (currently `1000` → 0.001 s) |
 | Different ground | Replace `1x1m-ground.stl` (ASCII preferred) |
 
 ## Related cases

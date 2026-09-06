@@ -1,14 +1,16 @@
 # ===================================================
-# Long rigid fibers (multisphere) drop onto tilted 1x1 m ground
+# Rubber-like long fibers (multisphere) drop onto tilted 1x1 m ground
 # Each fiber ≈ 152 mm long × 10 mm diameter (20 overlapping spheres)
+# Soft contacts + fine dt/dumps so bounce is resolved smoothly
 # ===================================================
 
-# 1. Variable Definitions - polymer-like fiber
-variable        youngs       equal 5.e8
-variable        poisson      equal 0.30
-variable        restitution  equal 0.3
-variable        friction     equal 0.4
-variable        density_val  equal 1200
+# 1. Variable Definitions - rubber-like
+#    E ~ few MPa, near-incompressible Poisson, high restitution & friction
+variable        youngs       equal 5.e6
+variable        poisson      equal 0.49
+variable        restitution  equal 0.80
+variable        friction     equal 0.70
+variable        density_val  equal 1100
 
 # 2. Initialization (sphere + map array required for multisphere)
 units           si
@@ -38,9 +40,10 @@ pair_coeff      * *
 neighbor        0.002 bin
 neigh_modify    delay 0 every 1 check yes
 
-# 6. Gravity straight down & timestep
+# 6. Gravity straight down & refined timestep
+#    Soft rubber Hertz contacts: dt = 1e-6 resolves bounce compression
 fix             grav all gravity 9.81 vector 0.0 0.0 -1.0
-timestep        0.000005
+timestep        0.000001
 
 # 7. STL ground mesh wall (1x1 m, tilted ~12 deg)
 fix             ground all mesh/surface file 1x1m-ground.stl type 1
@@ -73,15 +76,15 @@ thermo_style    custom step atoms ke c_1 cpu
 thermo          10000
 thermo_modify   lost ignore
 
-# 11. Data dumps — same strategy as cyclone-separator/DEM:
-#     one file per dump interval: post/dump<STEP>.liggghts_run
+# 11. Data dumps — cyclone-style dump*.liggghts_run
+#     Every 1000 steps = 0.001 s → smooth bounce playback in ParaView
 # Create post/ on the host before running if it does not exist:
 #   mkdir -p post
-dump            dmp all custom 10000 post/dump*.liggghts_run id type mol x y z vx vy vz radius
+dump            dmp all custom 1000 post/dump*.liggghts_run id type mol x y z vx vy vz radius
 
 # Optional: export mesh for ParaView overlay (* required by LIGGGHTS mesh/stl)
 dump            mesh1 all mesh/stl 100000000 post/ground_mesh_*.stl ground
 
-# 12. Run until they slide/settle (~3 s physical time at dt = 5e-6)
+# 12. Run until bounce/settle (~3 s physical time at dt = 1e-6)
 # Watch KE in thermo: when it stays near zero, fibers have settled.
-run             600000
+run             3000000

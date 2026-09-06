@@ -14,7 +14,7 @@ if ! compgen -G "$casePath/post/dump*.liggghts_run" >/dev/null \
 fi
 
 echo "Converting DEM dumps for ParaView (rewrites particles.pvd)..."
-"$casePath/dumpsToParaView" --step0 0 --dt 5e-6 "$@"
+"$casePath/dumpsToParaView" --step0 0 --dt 1e-6 "$@"
 
 echo ""
 echo "Open in ParaView:"
