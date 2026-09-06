@@ -26,9 +26,9 @@ cfdPath="$casePath/CFD"
 demPath="$casePath/DEM"
 restartDir="$demPath/post/restart"
 nrProcs="${NR_PROCS:-8}"
-demDt=0.000001
+demDt=0.0000005
 writeInterval=0.005
-feedTotal=250
+feedTotal=10000
 
 controlDict="$cfdPath/system/controlDict"
 couplingProps="$cfdPath/constant/couplingProperties"
@@ -40,7 +40,7 @@ mkdir -p "$restartDir" "$cfdPath/couplingFiles"
 touch "$cfdPath/couplingFiles/.keep"
 
 if ! compgen -G "$cfdPath/processor*" >/dev/null; then
-    echo "ERROR: no CFD/processor* directories found. Start with ./Allrun.sh first."
+    echo "ERROR: no CFD/processor* directories found. Start with ./Run.sh first."
     exit 1
 fi
 
@@ -184,9 +184,9 @@ neighbor        0.003 bin
 neigh_modify    delay 0
 fix         m1 all property/global youngsModulus peratomtype 5.e7
 fix         m2 all property/global poissonsRatio peratomtype 0.25
-fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.35
-fix         m4 all property/global coefficientFriction peratomtypepair 1 0.40
-pair_style  gran model hertz tangential history
+fix         m3 all property/global coefficientRestitution peratomtypepair 1 0.20
+fix         m4 all property/global coefficientFriction peratomtypepair 1 0.02
+pair_style  gran model hertz tangential no_history
 pair_coeff  * *
 timestep    $demDt
 reset_timestep $demStep

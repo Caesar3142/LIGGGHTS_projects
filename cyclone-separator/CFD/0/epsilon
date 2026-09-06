@@ -17,8 +17,8 @@ FoamFile
 
 dimensions      [0 2 -3 0 0 0 0];
 
-// Based on k=0.210938 m2/s2 and a 3.5 mm mixing length.
-internalField   uniform 4.5;
+// Based on k=0.09375 m2/s2 and a 3.5 mm mixing length.
+internalField   uniform 1.35;
 
 boundaryField
 {
@@ -28,18 +28,18 @@ boundaryField
         Cmu             0.09;
         kappa           0.41;
         E               9.8;
-        value           uniform 4.5;
+        value           uniform 1.35;
     }
     outlet
     {
         type            inletOutlet;
-        inletValue      uniform 4.5;
-        value           uniform 4.5;
+        inletValue      uniform 1.35;
+        value           uniform 1.35;
     }
     inlet
     {
         type            fixedValue;
-        value           uniform 4.5;
+        value           uniform 1.35;
     }
     background
     {
@@ -47,7 +47,7 @@ boundaryField
         Cmu             0.09;
         kappa           0.41;
         E               9.8;
-        value           uniform 4.5;
+        value           uniform 1.35;
     }
 }
 

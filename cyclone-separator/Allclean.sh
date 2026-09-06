@@ -47,9 +47,9 @@ rm -f DEM/log.liggghts DEM/screen.log DEM/log.*
 echo "Cleaning case logs..."
 rm -f log_* log.liggghts screen.log *.log
 
-# Empty dirs / stubs Allrun + ParaView expect
+# Empty dirs / stubs Run/Allrun + ParaView expect
 mkdir -p DEM/post/restart CFD/couplingFiles
 touch DEM/post/.gitkeep DEM/post/restart/.gitkeep CFD/couplingFiles/.keep
 touch CFD/cycloneSeparator.foam
 
-echo "Clean done. Next: ./Allrun.sh (rebuilds the cyclone mesh and runs CFD-DEM)."
+echo "Clean done. Next: ./buildMesh.sh then ./Run.sh (or ./Allrun.sh)."

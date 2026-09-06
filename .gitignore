@@ -3,6 +3,7 @@ post/
 **/post/
 **/processor*/
 **/postProcessing/
+**/polyMesh/
 
 # OpenFOAM result time directories (keep CFD/0 initial conditions)
 **/CFD/0.*/

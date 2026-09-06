@@ -10,21 +10,22 @@ injected periodically at the air-inlet velocity.
 | Item | Setting |
 |---|---|
 | Coupling | `cfdemSolverPiso` + LIGGGHTS, two-way MPI |
-| Cyclone geometry | `body.stl`, x/y ±0.161 m, z -0.402 to 0.172 m |
-| Inlet | 7.5 m/s in -x |
+| Cyclone geometry | `body.stl`, x/y ±0.160 m, z -0.600 to 0.172 m |
+| Inlet | 5.0 m/s in -x |
 | Outlet | Pressure outlet in +z |
 | Fluid | Air: ρ = 1.2 kg/m³, ν = 1.5e-5 m²/s |
 | Turbulence | RAS k-epsilon, 5% inlet intensity |
 | Particles | Quartz/sand, ρ = 2650 kg/m³ |
-| Diameters | 1.5, 3.0, 6.0 mm (mass fractions 0.05 / 0.25 / 0.70) |
+| Diameters | 0.30, 0.60, 1.20 mm (dust / fine / sand; mass fractions 0.05 / 0.25 / 0.70) |
 | Diameter mass fractions | 0.05 / 0.25 / 0.70 |
-| Feed | 500 particles/s, one batch every 0.05 s, maximum 250 |
-| DEM injection velocity | (-7.5, 0, 0) m/s |
+| Wall/particle friction | 0.02 |
+| Feed | 500 particles/s for 20 s (batches every 0.05 s), maximum 10000 |
+| DEM injection velocity | (-5.0, 0, 0) m/s |
 | CFD time step | 0.0025 s (= half of save interval) |
-| DEM time step | 1e-6 s |
+| DEM time step | 5e-7 s |
 | Coupling period | 0.01 s (= 4 CFD steps) |
-| Save / dump interval | 0.005 s (5000 DEM steps) |
-| Simulated time | 10 s |
+| Save / dump interval | 0.005 s (10000 DEM steps) |
+| Simulated time | 20 s |
 | MPI | 8 ranks (2 × 2 × 2) |
 
 The softened particle Young's modulus (5e7 Pa) is a computational setting,
@@ -37,7 +38,7 @@ the measured dust loading before using collection-efficiency results.
 
 The CFD mesh is generated in two steps:
 
-1. `blockMesh` creates a ~13 mm background mesh.
+1. `blockMesh` creates a ~11 mm background mesh.
 2. `snappyHexMesh -overwrite` retains the internal cyclone-fluid region and
    refines `body`, `inlet`, and `outlet` surfaces to about 6–7 mm
    (~1/4 of the previous cell count).
@@ -61,11 +62,17 @@ Inside the container:
 ```bash
 cd /simulation/cyclone-separator
 ./Allclean.sh
-./Allrun.sh
+./Allrun.sh              # buildMesh + Run + Allpostprocess
+# or step-by-step:
+# ./buildMesh.sh         # CFD mesh + DEM wall STL
+# ./Run.sh               # coupled CFD-DEM only
+# ./Allpostprocess.sh
 ```
 
-`Allrun.sh` builds and checks the cyclone mesh, then launches the coupled
-simulation. The cyclone starts empty; there is no packed-bed initialization.
+`buildMesh.sh` builds the cyclone mesh and prepares `DEM/body.stl`.
+`Run.sh` launches the coupled simulation (mesh must already exist).
+`Allrun.sh` runs mesh, simulation, and post-process in sequence. The cyclone
+starts empty; there is no packed-bed initialization.
 
 ### Continue from the last written time
 
@@ -100,12 +107,18 @@ For an optional DEM-only check that LIGGGHTS can read `body.stl`:
 
 ```bash
 ./Allpostprocess.sh
-# optional: RECONSTRUCT_JOBS=8 ./Allpostprocess.sh
+# faster options:
+# RECONSTRUCT_JOBS=12 ./Allpostprocess.sh
+# RECONSTRUCT_TIME='5:' ./Allpostprocess.sh          # only t>=5 s
+# SKIP_CFD_RECONSTRUCT=1 ./Allpostprocess.sh         # particles only
+# RECONSTRUCT_FIELDS=all ./Allpostprocess.sh         # every CFD field
 ```
 
 `Allpostprocess.sh` runs several `reconstructPar -noLagrangian` jobs in
-parallel (time ranges split across `RECONSTRUCT_JOBS`, default 8), then
-converts DEM dumps.
+parallel (time ranges split across `RECONSTRUCT_JOBS`, default 8). By default
+it only rebuilds ParaView-useful fields (`U p voidfraction Us Ksl …`); use
+`RECONSTRUCT_FIELDS=all` for a full reconstruct. `-newTimes` skips times that
+are already reconstructed. It then converts DEM dumps.
 
 Open:
 
@@ -132,10 +145,10 @@ diameter, velocity, and CFD drag. Particle dumps and CFD writes both use a
 must stay equal:
 
 ```text
-CFDEM: DEM timestep × couplingInterval = 1e-6 × 10000 = 0.01 s
-DEM:   timestep × couple_every         = 1e-6 × 10000 = 0.01 s
+CFDEM: DEM timestep × couplingInterval = 5e-7 × 20000 = 0.01 s
+DEM:   timestep × couple_every         = 5e-7 × 20000 = 0.01 s
 This equals 4 CFD steps at deltaT = 0.0025 s (2× writeInterval 0.005 s).
-Write/dump interval remains 0.005 s (5000 DEM steps).
+Write/dump interval remains 0.005 s (10000 DEM steps).
 ```
 
 ## Physical limitations

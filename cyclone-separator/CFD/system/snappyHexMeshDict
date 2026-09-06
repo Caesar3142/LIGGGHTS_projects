@@ -32,7 +32,7 @@ geometry
 castellatedMeshControls
 {
     maxLocalCells       200000;
-    maxGlobalCells      500000;
+    maxGlobalCells      750000;
     minRefinementCells  0;
     nCellsBetweenLevels 2;
     resolveFeatureAngle 30;

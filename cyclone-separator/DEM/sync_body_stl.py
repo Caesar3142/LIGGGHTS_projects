@@ -3,7 +3,7 @@
 
 LIGGGHTS mesh/surface only accepts ASCII STL. Binary STLs confuse vertex
 merging and can create hard-angle / >5-neighbor failures. Bad triangles are
-handled separately via element_exclusion_list (see Allrun.sh).
+handled separately via mesh cleaning in buildMesh.sh.
 """
 import struct
 import sys

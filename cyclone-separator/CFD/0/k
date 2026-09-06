@@ -17,8 +17,8 @@ FoamFile
 
 dimensions      [0 2 -2 0 0 0 0];
 
-// 5% inlet turbulence intensity at 7.5 m/s: k = 3/2 (U I)^2.
-internalField   uniform 0.210938;
+// 5% inlet turbulence intensity at 5.0 m/s: k = 3/2 (U I)^2.
+internalField   uniform 0.09375;
 
 boundaryField
 {
@@ -36,7 +36,7 @@ boundaryField
     inlet
     {
         type            fixedValue;
-        value           uniform 0.210938;
+        value           uniform 0.09375;
     }
     background
     {

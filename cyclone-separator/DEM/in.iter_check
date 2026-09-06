@@ -7,7 +7,7 @@ communicate single vel yes
 boundary f f f
 newton off
 units si
-region domain block -0.18 0.18 -0.18 0.18 -0.42 0.18 units box
+region domain block -0.18 0.18 -0.18 0.18 -0.62 0.19 units box
 create_box 1 domain
 neighbor 0.003 bin
 neigh_modify delay 0
